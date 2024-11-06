@@ -1,12 +1,14 @@
 import requests
 
 class APIClient:
-    def __init__(self, base_url):
-        self.base_url = base_url
-
-    def fetch_artist_data(self):
-        response = requests.get(f"{self.base_url}/artist/all/popularity")
-        if response.status_code == 200:
-            return response.json()
-        else:
-            raise Exception("Erreur lors de la récupération des données de l'API")
+    BASE_URL = "https://wasabi.i3s.unice.fr/api/v1/artist/name/"
+    
+    @staticmethod
+    def fetch_artist_details(artist_name):
+        try:
+            response = requests.get(f"{APIClient.BASE_URL}{artist_name}")
+            response.raise_for_status()  # Vérifie que la requête a réussi
+            return response.json()  # Retourne les données JSON
+        except requests.exceptions.RequestException as e:
+            print(f"Erreur lors de la récupération des détails de l'artiste {artist_name}: {e}")
+            return None

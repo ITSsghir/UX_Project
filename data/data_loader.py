@@ -1,19 +1,24 @@
-import requests
+from api_client import APIClient
 
 class DataLoader:
-    def __init__(self, api_client):
-        self.api_client = api_client
+    def __init__(self, artist_names):
+        self.artist_names = artist_names
+        self.artist_data = []
 
-    def load_artist_data(self):
-        # Récupère les données de l'API
-        artist_data = self.api_client.fetch_artist_data()
-        
-        # Traite les données ici (par exemple, filtrage, agrégation)
-        processed_data = self.process_data(artist_data)
-        
-        return processed_data
+    def load_artists(self):
+        for name in self.artist_names:
+            artist_details = APIClient.fetch_artist_details(name)
+            if artist_details:
+                location = artist_details.get("location", {})
+                city = location.get("city", "Inconnu")
+                country = location.get("country", "Inconnu")
+                # Ajouter le nombre de fans
+                deezer_fans = artist_details.get("deezerFans", 0)  # Par défaut 0 si non spécifié
+                self.artist_data.append({
+                    "name": artist_details["name"],
+                    "location": f"{city}, {country}",
+                     "deezer_fans": deezer_fans  # Ajout du nombre de fans Deezer
+                })
 
-    def process_data(self, data):
-        # Traitement spécifique sur les données
-        # Par exemple, sélectionner certains attributs ou faire des calculs
-        return data  # Renvoie les données traitées
+    def get_artist_data(self):
+        return self.artist_data
