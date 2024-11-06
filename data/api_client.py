@@ -21,18 +21,12 @@ class APIClient:
             return []
 
     @staticmethod
-    def fetch_all_artists(page=1, max_pages=3):
-        # Fonction récursive pour récupérer les artistes sur plusieurs pages
+    def fetch_all_artists(page):
+        # Cette méthode est désormais sans paramètre max_pages
         all_artists = []
-        current_page = page
-        
-        while current_page <= max_pages:
-            print(f"Récupération des artistes de la page {current_page}...")
-            artists = APIClient.fetch_artists(current_page)
-            
-            if artists:
-                all_artists.extend(artists)  # Ajouter les artistes récupérés à la liste finale
-                
-            current_page += 1  # Passer à la page suivante
+        artists = APIClient.fetch_artists(page)  # Récupère les artistes pour la page donnée
+
+        if artists:
+            all_artists.extend(artists)  # Ajouter les artistes récupérés à la liste finale
 
         return all_artists

@@ -14,7 +14,17 @@ def main():
     for artist in artist_data:
         genres = ", ".join(artist["genres"])  # Affiche les genres sous forme de chaîne
         print(f"Artiste: {artist['name']}, Localisation: {artist['location']}, Nombre de fans: {artist['deezer_fans']}, Genre(s): {genres}")
-    
+        
+        # Afficher les albums et les titres des musiques
+        if artist["albums"]:
+            print("  Albums :")
+            for album_title, songs in artist["albums"].items():
+                print(f"    - Album: {album_title}")
+                for song in songs:
+                    print(f"      - Musique: {song}")
+        else:
+            print("  Aucun album trouvé.")
+
     # Afficher le nombre total d'artistes récupérés
     print(f"\nTotal d'artistes récupérés: {data_loader.get_total_artists()}")
     

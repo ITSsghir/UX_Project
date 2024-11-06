@@ -16,7 +16,6 @@ Bienvenue dans notre projet de **visualisation interactive** qui permet d'explor
   - **Clic** sur un pays pour naviguer vers la **Visualisation 2 : répartition des genres musicaux** dans ce pays.
 
 ### Visualisation 2 : Répartition des genres musicaux dans un pays 📊🎸
-
 - **Description** : Un histogramme des genres musicaux populaires dans le pays sélectionné.
   - **Axe X** : genres musicaux (rap, pop, rock, etc.).
   - **Axe Y** : popularité du genre (nombre de fans).
