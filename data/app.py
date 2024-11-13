@@ -39,9 +39,22 @@ def main():
     # Afficher le nombre total d'artistes récupérés
     print(f"\nTotal d'artistes récupérés: {data_loader.total_artists}")
     
-    print("Artistes")
+    artists_per_country = data_loader.get_artists_per_country()
+    
+    print("Artistes par pays")
     # Beautiful JSON print
-    print(json.dumps(data_loader.get_artist_data(), indent=4))
+    print(json.dumps(artists_per_country, indent=4))
+    
+    total_artists_per_country = 0
+    # Count the total number of artists from each country and compare with the total number of artists
+    for country_artists in artists_per_country:
+        country = country_artists["country"]
+        artist_count = country_artists["number_of_artists"]
+        total_artists_per_country += artist_count
+        print(f"{country}: {artist_count} artistes")
+    
+    print(f"Total artistes par pays: {total_artists_per_country}")
+    print(f"Total artists: {data_loader.total_artists}")
     
     # Récupérer et afficher la popularité par pays
     #country_popularity = data_loader.get_country_popularity()

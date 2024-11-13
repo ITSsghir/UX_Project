@@ -8,7 +8,8 @@ class DataLoader:
         self.total_artists = 0  # Compteur des artistes
         self.country_popularity = {}  # Dictionnaire pour stocker la popularité par pays
         self.genre_popularity_by_country = {}  # Dictionnaire pour stocker la popularité par genre et par pays
-
+        self.artists_per_country = [] # Liste pour stocker les artistes par pays
+        
     async def fetch_artists(self, session, page):
         """Fetch artists from a specific page asynchronously."""
         print(f"Fetching artists from page {page}...")  # Log the page being fetched
@@ -67,10 +68,29 @@ class DataLoader:
             "genres": genres,
             "albums": artist_albums
         })
-
+        
+        # Construct the artist per country object (country, number of artists, number of songs, number of deezer fans)
+        nb_songs = sum([len(songs) for songs in artist_albums.values()])
+        
+        self.update_artists_per_country(country, 1, nb_songs, deezer_fans)
         self.update_country_popularity(country, deezer_fans)
         self.update_genre_popularity_by_country(country, genres, deezer_fans)
 
+    def update_artists_per_country(self, country, number_of_artists, number_of_songs, deezer_fans):
+        # Get the object from the list by country
+        artist_per_country = next((country_artists for country_artists in self.artists_per_country if country_artists["country"] == country), None)
+        if artist_per_country:
+            artist_per_country["number_of_artists"] += number_of_artists
+            artist_per_country["number_of_songs"] += number_of_songs
+            artist_per_country["deezer_fans"] += deezer_fans
+        else:
+            self.artists_per_country.append({
+                "country": country,
+                "number_of_artists": number_of_artists,
+                "number_of_songs": number_of_songs,
+                "deezer_fans": deezer_fans
+            })
+        
     def update_country_popularity(self, country, deezer_fans):
         self.country_popularity.setdefault(country, {"artist_count": 0, "total_popularity": 0})
         self.country_popularity[country]["artist_count"] += 1
@@ -93,3 +113,6 @@ class DataLoader:
 
     def get_genre_popularity_by_country(self):
         return self.genre_popularity_by_country
+
+    def get_artists_per_country(self):
+        return self.artists_per_country
