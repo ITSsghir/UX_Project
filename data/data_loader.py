@@ -1,3 +1,5 @@
+import aiohttp
+import asyncio
 from api_client import APIClient
 
 class DataLoader:
@@ -7,66 +9,78 @@ class DataLoader:
         self.country_popularity = {}  # Dictionnaire pour stocker la popularité par pays
         self.genre_popularity_by_country = {}  # Dictionnaire pour stocker la popularité par genre et par pays
 
-    def load_artists(self, max_pages=15):
-        # Utilise la fonction pour récupérer les artistes sur un nombre de pages spécifié
+    async def fetch_artists(self, session, page):
+        """Fetch artists from a specific page asynchronously."""
+        print(f"Fetching artists from page {page}...")  # Log the page being fetched
+        try:
+            url = f'{APIClient.BASE_URL}{page}'  # Construct the URL with page number
+            async with session.get(url) as response:
+                response.raise_for_status()  # Check for HTTP errors
+                artists = await response.json()
+                print(f"Successfully fetched {len(artists)} artists from page {page}.")  # Log success
+                return artists
+        except Exception as e:
+            print(f"Erreur lors de la récupération des artistes de la page {page}: {e}")
+            return []
+
+    async def fetch_all_artists(self, max_pages):
+        """Fetch all artists concurrently using asynchronous requests."""
         all_artists = []
-        
-        for page in range(1, max_pages + 1):  # Pour chaque page jusqu'à max_pages
-            print(f"Récupération des artistes de la page {page}...")
-            artists = APIClient.fetch_all_artists(page)
-            
-            if artists:
-                all_artists.extend(artists)  # Ajouter les artistes récupérés à la liste finale
+        async with aiohttp.ClientSession() as session:
+            tasks = [self.fetch_artists(session, page) for page in range(1, max_pages + 1)]
+            results = await asyncio.gather(*tasks)
 
+            for artists in results:
+                if artists:
+                    all_artists.extend(artists)
+
+        print(f"Total artists fetched: {len(all_artists)}")  # Log total artists fetched
+        return all_artists
+
+    def load_artists(self, max_pages=15):
+        """Load artists by fetching data asynchronously."""
+        print(f"Loading artists from {max_pages} pages...")  # Log the start of loading
+        all_artists = asyncio.run(self.fetch_all_artists(max_pages))
         if all_artists:
-            # Traite les artistes récupérés
             for artist_details in all_artists:
-                location = artist_details.get("location", {})
-                city = location.get("city", "Inconnu")
-                country = location.get("country", "Inconnu")
-                deezer_fans = artist_details.get("deezerFans", 0)
-                genres = artist_details.get("genres", [])
-                
-                # Récupérer les albums et les titres des musiques
-                albums = artist_details.get("albums", [])
-                artist_albums = {}
-                
-                for album in albums:
-                    album_title = album.get("title", "Inconnu")  # Utilisation du champ 'title' pour le nom de l'album
-                    album_songs = album.get("songs", [])
-                    song_titles = [song.get("title", "Inconnu") for song in album_songs]  # Extraction des titres des chansons
-                    artist_albums[album_title] = song_titles  # Associer chaque album à ses titres de musique
-                
-                # Ajouter l'artiste aux données
-                self.artist_data.append({
-                    "name": artist_details["name"],
-                    "location": f"{city}, {country}",
-                    "deezer_fans": deezer_fans,
-                    "genres": genres,
-                    "albums": artist_albums  # Ajout des albums et des titres
-                })
-                
-                # Calculer la popularité par pays
-                if country not in self.country_popularity:
-                    self.country_popularity[country] = {
-                        "artist_count": 0,
-                        "total_popularity": 0
-                    }
-                
-                self.country_popularity[country]["artist_count"] += 1
-                self.country_popularity[country]["total_popularity"] += deezer_fans
-
-                # Calculer la popularité par genre et par pays
-                if country not in self.genre_popularity_by_country:
-                    self.genre_popularity_by_country[country] = {}
-
-                for genre in genres:
-                    if genre not in self.genre_popularity_by_country[country]:
-                        self.genre_popularity_by_country[country][genre] = 0
-                    self.genre_popularity_by_country[country][genre] += deezer_fans
-                
-            # Mettre à jour le compteur avec le nombre d'artistes récupérés
+                self.process_artist(artist_details)
             self.total_artists += len(all_artists)
+            print(f"Total artists processed: {self.total_artists}")  # Log total artists processed
+
+    def process_artist(self, artist_details):
+        location = artist_details.get("location", {})
+        city = location.get("city", "Inconnu")
+        country = location.get("country", "Inconnu")
+        deezer_fans = artist_details.get("deezerFans", 0)
+        genres = artist_details.get("genres", [])
+        albums = artist_details.get("albums", [])
+        
+        artist_albums = {
+            album.get("title", "Inconnu"): [song.get("title", "Inconnu") for song in album.get("songs", [])]
+            for album in albums
+        }
+
+        self.artist_data.append({
+            "name": artist_details["name"],
+            "location": f"{city}, {country}",
+            "deezer_fans": deezer_fans,
+            "genres": genres,
+            "albums": artist_albums
+        })
+
+        self.update_country_popularity(country, deezer_fans)
+        self.update_genre_popularity_by_country(country, genres, deezer_fans)
+
+    def update_country_popularity(self, country, deezer_fans):
+        self.country_popularity.setdefault(country, {"artist_count": 0, "total_popularity": 0})
+        self.country_popularity[country]["artist_count"] += 1
+        self.country_popularity[country]["total_popularity"] += deezer_fans
+
+    def update_genre_popularity_by_country(self, country, genres, deezer_fans):
+        self.genre_popularity_by_country.setdefault(country, {})
+        for genre in genres:
+            self.genre_popularity_by_country[country].setdefault(genre, 0)
+            self.genre_popularity_by_country[country][genre] += deezer_fans
 
     def get_artist_data(self):
         return self.artist_data
