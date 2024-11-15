@@ -1,17 +1,20 @@
 from data_loader import DataLoader
 import time
-import json
 
 def main():
-    # Initialiser le DataLoader
-    data_loader = DataLoader(max_artists=1000)
+    # Initialize the DataLoader
+    data_loader = DataLoader(max_artists=1000, debug=True)
     
     start_time = time.time()
     print("Starting to load artists...")  # Log the start of the loading process
     
     # Load artists (fetch all available artists)
-    data_loader.load_artists()
-    
+    try:
+        data_loader.load_artists()
+    except Exception as e:
+        print(f"Error loading artists: {e}")
+        return  # Exit if there's an error
+
     end_time = time.time()
     print(f"Execution time: {end_time - start_time:.2f} seconds")  # Log execution time
     

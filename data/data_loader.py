@@ -4,31 +4,29 @@ import pickle
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
-import orjson  # Import orjson for faster JSON parsing
 from api_client import APIClient
 
 class DataLoader:
-    def __init__(self, max_artists=77492):
+    def __init__(self, max_artists=77492, debug=False):
+        self.api_client = APIClient()  # Initialize APIClient
         self.artist_data = []
         self.total_artists = 0
         self.country_popularity = {}
         self.genre_popularity_by_country = {}
         self.artists_per_country = []
         self.artists_per_genre = []
-        self.cache_file = 'cache.pkl'  # File to store cached processed data
-        self.max_artists = max_artists  # Maximum number of artists to fetch
-        self.semaphore = asyncio.Semaphore(15)  # Limit to 15 concurrent requests
-        self.queue = asyncio.Queue()  # Queue for managing artist processing
-        self.last_artist_count = 0  # Store last artist count
-
-        # Load cached processed data if it exists
+        self.cache_file = 'cache.pkl'
+        self.max_artists = max_artists
+        self.semaphore = asyncio.Semaphore(15)
+        self.queue = asyncio.Queue()
+        self.debug = debug
+        self.last_artist_count = 0
         self.load_cached_data()
 
+    # Load cached data (unchanged except duplicate removal)
     def load_cached_data(self):
-        """Load cached processed data from a file if it exists and is valid."""
         if os.path.exists(self.cache_file):
             try:
-                print("Loading cached data from file...")  # Debug statement
                 with open(self.cache_file, 'rb') as f:
                     cached_data = pickle.load(f)
                     self.artist_data = cached_data.get("artist_data", [])
@@ -36,20 +34,17 @@ class DataLoader:
                     self.country_popularity = cached_data.get("country_popularity", {})
                     self.genre_popularity_by_country = cached_data.get("genre_popularity_by_country", {})
                     self.artists_per_country = cached_data.get("artists_per_country", [])
-                    self.artists_per_country = cached_data.get("artists_per_country", [])
-                    self.last_artist_count = cached_data.get("last_artist_count", 0)  # Store last artist count
-                print("Cached data loaded successfully.")  # Debug statement
+                    self.last_artist_count = cached_data.get("last_artist_count", 0)
+                if self.debug:
+                    print("Attempting to load cached data.")
+                print("Cached data loaded.")
                 return True
             except (pickle.PickleError, IOError) as e:
                 print(f"Error loading cache: {e}")
-                return False
-        else:
-            print("No cached data found.")  # Debug statement
-            return False
+        return False
 
-
+    # Save cached data (unchanged except duplicate removal)
     def save_cached_data(self):
-        """Save processed data to a cache file using pickle with additional error handling."""
         try:
             with open(self.cache_file, 'wb') as f:
                 pickle.dump({
@@ -58,46 +53,16 @@ class DataLoader:
                     "country_popularity": self.country_popularity,
                     "genre_popularity_by_country": self.genre_popularity_by_country,
                     "artists_per_country": self.artists_per_country,
-                    "artists_per_country": self.artists_per_country,
-                    "last_artist_count": self.total_artists,  # Update last artist count
+                    "last_artist_count": self.total_artists,
                 }, f)
-            print("Cache saved successfully.")  # Debug message
+            if self.debug:
+                print("Saving cached data.")
+            print("Cache saved.")
         except (pickle.PickleError, IOError) as e:
             print(f"Error saving cache: {e}")
 
-
-    async def fetch_artists(self, session, start):
-        """Fetch artists from a specific starting index asynchronously."""
-        async with self.semaphore:  # Limit concurrent requests
-            print(f"Fetching artists starting from index {start}...")
-            retry_attempts = 5  # Number of retry attempts
-            for attempt in range(retry_attempts):
-                try:
-                    url = f'{APIClient.BASE_URL}{start}'
-                    async with session.get(url) as response:
-                        response.raise_for_status()
-                        # Use orjson to parse the JSON response
-                        artists = orjson.loads(await response.read())
-                        print(f"Successfully fetched {len(artists)} artists starting from index {start}.")
-                        return artists
-                except aiohttp.ClientResponseError as e:
-                    if e.status == 429:  # Too Many Requests
-                        wait_time = 2 ** attempt  # Exponential backoff
-                        print(f"Rate limit exceeded. Waiting for {wait_time} seconds before retrying...")
-                        await asyncio.sleep(wait_time)  # Wait before retrying
-                    else:
-                        print(f"Error fetching artists starting from index {start}: {e}")
-                        return []
-                except aiohttp.ClientError as e:  # Handle general client errors
-                    if "Server disconnected" in str(e):
-                        print(f"Server disconnected while fetching artists starting from index {start}. Retrying...")
-                        await asyncio.sleep(2 ** attempt)  # Exponential backoff
-                    else:
-                        print(f"Error fetching artists starting from index {start}: {e}")
-                        return []
-                except Exception as e:
-                    print(f"Error fetching artists starting from index {start}: {e}")
-                    return []
+    async def fetch_artists(self, session, start_index):
+        return await self.api_client.fetch_artists_async(session, start_index)  # Use APIClient
 
     async def process_artist(self, artist_details):
         """Process artist details and update relevant statistics."""
@@ -131,7 +96,6 @@ class DataLoader:
             "nb_songs": nb_songs,
             "country": country
         }
-        
         
         # Construct the artist per country object (country, number of artists, number of songs, number of deezer fans)
         nb_songs = sum(len(songs) for songs in artist_albums.values())
@@ -184,9 +148,9 @@ class DataLoader:
                     all_artists.extend(artists)
                     for artist in artists:
                         await self.queue.put(artist)  # Add artist to the processing queue
-
-            print(f"Total artists fetched: {len(all_artists)}")
-            print(f"Time taken to fetch all artists: {end_time_fetch - start_time_fetch:.2f} seconds")
+            if self.debug:
+                print(f"Total artists fetched: {len(all_artists)}")
+                print(f"Time taken to fetch all artists: {end_time_fetch - start_time_fetch:.2f} seconds")
 
         # Start worker tasks for processing artists
         workers = [asyncio.create_task(self.worker()) for _ in range(5)]  # Adjust number of workers as needed
@@ -201,12 +165,15 @@ class DataLoader:
 
     def load_artists(self):
         """Load artists by fetching data asynchronously."""
-        print("Loading artists...")
+        if self.debug:
+            print("Loading artists...")
         # Load cached data first
         if not self.load_cached_data():  # Attempt to load cached data
-            print("No valid cache found, fetching new data...")
+            if self.debug:
+                print("No valid cache found, fetching new data...")
         else:
-            print("Using cached data.")
+            if self.debug:
+                print("Using cached data.")
             return  # Exit early if cached data is sufficient
 
         # Fetch artists if no valid cache is found
@@ -217,7 +184,8 @@ class DataLoader:
         all_artists = asyncio.run(self.fetch_all_artists())
         if all_artists:
             self.total_artists = len(all_artists)
-            print(f"Total artists processed: {self.total_artists}")
+            if self.debug:
+                print(f"Total artists fetched: {self.total_artists}")
             self.save_cached_data()  # Save processed data to cache
         else:
             print("No artists fetched, cache not updated.")  # Debug statement
