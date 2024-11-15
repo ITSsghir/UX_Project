@@ -1,20 +1,35 @@
-# Virtual environment
-data/venv
+# Virtual environment of every subdirectory
+**/venv
 
 # IDE
 .idea
 .vscode
 
-# Compiled files
+# Compiled files in every subdirectory (commin ones for python and JS)
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/__pycache__
+**/.pytest_cache
+**/node_modules
+**/dist
+**/build
+**/*.sqlite3
+
+# Compiled files in the root directory
 *.pyc
 *.pyo
 *.pyd
-data/__pycache__
-
-# Logs
-*.log
-
-# Database
+__pycache__
+.pytest_cache
 *.sqlite3
+node_modules
+dist
+build
 
-data/requirements.txt
+# Logs 
+*.log
+**/*.log
+
+# Txt files in every subdirectory
+**/*.txt
