@@ -3,7 +3,7 @@
 import pytest
 from aiohttp import web
 # Import the app from the services.api module (don't use relative imports)
-from services.api import app
+from api.services.api_server import app
 
 @pytest.fixture
 async def client(aiohttp_client):

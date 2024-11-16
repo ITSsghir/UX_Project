@@ -79,7 +79,7 @@ Ce projet permet d'explorer :
 
     ```bash
     # On le lance en mode module pour éviter les problèmes de chemin
-    python -m services.api
+    python -m services.api_server
     ```
 
 4. **Tester l'API** :
