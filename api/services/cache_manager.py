@@ -2,14 +2,14 @@ import os
 import pickle
 
 class CacheManager:
-    def __init__(self, cache_filepath='cache.pkl'):
+    def __init__(self, cache_filepath='cache.pkl', processor=None):
         self.cache_filepath = cache_filepath
-        self.cached_artists_data = []
-        self.cached_total_artists = 0
-        self.cached_country_popularity = {}
-        self.cached_genre_popularity_by_country = {}
-        self.cached_artists_per_country = []
-        self.last_artist_count = 0
+        self.cached_artists_data = processor.artists_data if processor else []
+        self.cached_total_artists = processor.total_artists if processor else 0
+        self.cached_country_popularity = processor.country_popularity if processor else {}
+        self.cached_genre_popularity_by_country = processor.genre_popularity_by_country if processor else {}
+        self.cached_artists_per_country = processor.artists_by_country if processor else []
+        self.cached_artists_by_genre_by_country = processor.artists_by_genre_by_country if processor else []
 
     def load_cache(self):
         """Loads cached data from a file if it exists."""
@@ -22,7 +22,7 @@ class CacheManager:
                     self.cached_country_popularity = cached_data.get("country_popularity", {})
                     self.cached_genre_popularity_by_country = cached_data.get("genre_popularity_by_country", {})
                     self.cached_artists_per_country = cached_data.get("artists_per_country", [])
-                    self.last_artist_count = cached_data.get("last_artist_count", 0)
+                    self.cached_artists_by_genre_by_country = cached_data.get("artists_by_genre_by_country", [])
                 print("Cached data loaded.")
                 return True
             except (pickle.PickleError, IOError) as e:
@@ -40,7 +40,7 @@ class CacheManager:
                     "country_popularity": self.cached_country_popularity,
                     "genre_popularity_by_country": self.cached_genre_popularity_by_country,
                     "artists_per_country": self.cached_artists_per_country,
-                    "last_artist_count": self.cached_total_artists,
+                    "artists_by_genre_by_country": self.cached_artists_by_genre_by_country
                 }, cache_file)
             print("Cache saved.")
         except (pickle.PickleError, IOError) as e:
@@ -53,7 +53,7 @@ class CacheManager:
         self.cached_country_popularity = {}
         self.cached_genre_popularity_by_country = {}
         self.cached_artists_per_country = []
-        self.last_artist_count = 0
+        self.cached_artists_by_genre_by_country = []
         try:
             os.remove(self.cache_filepath)
             print("Cache cleared.")
@@ -62,6 +62,6 @@ class CacheManager:
     
     def exists(self):
         """Check if the cache exists"""
-        if not os.path.exists(self.cache_filepath):
-            return False
-        return True
+        if os.path.exists(self.cache_filepath):
+            return True
+        return False

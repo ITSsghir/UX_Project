@@ -115,7 +115,7 @@ class ArtistProcessor:
         return self.artists_data
     
     def get_total_artists(self):
-        return self.total_artists
+        return len(self.artists_data)
 
     def get_country_popularity(self):
         return self.country_popularity

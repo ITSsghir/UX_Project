@@ -10,53 +10,60 @@ class ArtistLoader:
         self.max_artists = max_artists
         self.debug = debug
 
-        self.data_cache = CacheManager('cache.pkl')
+
         self.processor = ArtistProcessor()
+        self.data_cache = CacheManager('cache.pkl', processor=self.processor)
         self.api_client = APIClient()
 
-        self.data_cache.load_cache()
-
-    def fetch_artists(self, start_index):
-        return self.api_client.fetch_artists(start_index)  # Changed to synchronous call
+    def fetch_artists(self):
+        return self.api_client.fetch_artists_in_threads(self.max_artists)
 
     def process_all_artists(self):
-        start_indices = range(0, self.max_artists, 200)  # Assuming 200 is the batch size
-        results = []
+        # Fetch artists data
+        artists_data = self.fetch_artists()
+        if not artists_data:
+            raise Exception("No data fetched.")
+        if self.debug:
+            print(f"Total artists fetched: {len(artists_data)}")
+        # Process artists data
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_index = {executor.submit(self.fetch_artists, index): index for index in start_indices}
-            for future in concurrent.futures.as_completed(future_to_index):
-                index = future_to_index[future]
-                try:
-                    artists = future.result()
-                    for artist in artists:
-                        self.processor.process_artist(artist)
-                        self.artist_data.append(artist)
-                except Exception as e:
-                    if self.debug:
-                        print(f"Error fetching artists from index {index}: {e}")
+            executor.map(self.processor.process_artist, artists_data)
+        if self.debug:
+            print("All artists processed.")
+        self.artist_data = self.processor.artists_data
+        self.total_artists = self.processor.get_total_artists()
+        
+    def load_cache_from_file(self):
+        if self.debug:
+            print("Loading cache from file...")
+        if not self.data_cache.load_cache():
+            if self.debug:
+                print("Cache not found.")
+            return False
+        if self.debug:
+            print("Cache loaded.")
+        self.artist_data = self.data_cache.cached_artists_data
+
+        self.processor.country_popularity = self.data_cache.cached_country_popularity
+        self.processor.genre_popularity_by_country = self.data_cache.cached_genre_popularity_by_country
+        self.processor.artists_by_genre_by_country = self.data_cache.cached_artists_by_genre_by_country
+        self.processor.artists_by_country = self.data_cache.cached_artists_per_country
+        self.processor.artists_data = self.data_cache.cached_artists_data
+        self.processor.total_artists = len(self.data_cache.cached_artists_data)
+        self.total_artists = self.processor.total_artists
+        if self.debug:
+            print("Total artists loaded from cache:", self.total_artists)
+        
+        return True
 
     def load_artists(self):
         if self.debug:
             print("Loading artists...")
-        if not self.data_cache.load_cache():
-            if self.debug:
-                print("No valid cache found, fetching new data...")
-            try:
-                self.process_all_artists()  # Changed to synchronous call
-                self.total_artists = len(self.processor.artists_data)
-                if self.debug:
-                    print(f"Total artists loaded: {self.total_artists}")
-            except Exception as e:
-                if self.debug:
-                    print(f"Error during artist loading: {e}")
-        else:
-            if self.debug:
-                print("Using cached data.")
-            self.artist_data = self.data_cache.cached_artists_data  
-            self.total_artists = len(self.artist_data)  
-            for artist in self.artist_data:  
-                self.processor.process_artist(artist)
-            return 
+        if not self.load_cache_from_file():
+            self.process_all_artists()
+            self.data_cache.save_cache()
+        if self.debug:
+            print("Artists loaded successfully!")
 
     def get_total_artists(self):
         return self.total_artists
