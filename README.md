@@ -1,5 +1,4 @@
 
----
 # 🌍 Carte Interactive des Artistes Mondiaux 🎶
 
 Bienvenue dans notre projet de **visualisation interactive** qui permet d'explorer la distribution géographique et la popularité des artistes à travers le monde, ainsi que la répartition des genres musicaux par pays ! 
@@ -16,6 +15,7 @@ Bienvenue dans notre projet de **visualisation interactive** qui permet d'explor
   - **Clic** sur un pays pour naviguer vers la **Visualisation 2 : répartition des genres musicaux** dans ce pays.
 
 ### Visualisation 2 : Répartition des genres musicaux dans un pays 📊🎸
+
 - **Description** : Un histogramme des genres musicaux populaires dans le pays sélectionné.
   - **Axe X** : genres musicaux (rap, pop, rock, etc.).
   - **Axe Y** : popularité du genre (nombre de fans).
@@ -38,11 +38,87 @@ Bienvenue dans notre projet de **visualisation interactive** qui permet d'explor
 ## 🚀 Objectifs
 
 Ce projet permet d'explorer :
+
 - La **distribution géographique** des artistes.
 - Les **genres musicaux populaires** par pays.
 - Les **groupes et artistes clés** dans chaque genre.
 
----
+## Setup
 
-Merci de visiter notre projet et d'explorer la richesse de la musique mondiale ! 🎉
+### API (Backend)
 
+1. **Cloner le dépôt** :
+
+    ```bash
+    git clone https://github.com/ITSsghir/UX_Project.git`
+    ```
+
+2. **Installer les dépendances** :
+
+    ```bash
+    cd UX_Project
+
+    cd api/
+
+    # Créer un environnement virtuel
+    pip install virtualenv
+    virtualenv venv
+    # Sur Windows : .\venv\Scripts\activate
+    venv\Scripts\activate
+    # Sur Linux/Mac : source venv/bin/activate
+
+    # Installer les dépendances
+    pip install pip-tools
+    pip-compile requirements.in
+    pip-sync
+    ```
+
+3. **Lancer l'API** :
+
+    > **Remarque** : vous devez être dans le dossier `api/` pour lancer l'API.
+
+    ```bash
+    # On le en mode module pour éviter les problèmes de chemin
+    python -m services.api
+    ```
+
+4. **Tester l'API** :
+
+    - Exécuter des requêtes HTTP sur `http://localhost:8000`.
+    - Exemple : `http://localhost:8000/artists-by-genre-in-country?country=France&genre=EBM`
+      - Remplacer `France` par le pays souhaité.
+      - Remplacer `EBM` par le genre musical souhaité.
+  
+    Exemple de requête :
+  
+    ```bash
+    curl http://localhost:8000/artists-by-genre-in-country?country=France&genre=EBM
+    ```
+
+    Exemple de réponse :
+  
+    ```json
+    {
+        "genre": "EBM",
+        "artists": [
+            {
+              "name": "A Broken Silence",
+              "number_of_songs": 25,
+              "number_of_albums": 2,
+              "deezer_fans": 767,
+              "country": "Unknown"
+          },
+          {
+              "name": "A Gun Called Tension",
+              "number_of_songs": 12,
+              "number_of_albums": 1,
+              "deezer_fans": 5,
+              "country": "United States"
+          },
+        ]
+    }
+    ```
+
+### Frontend
+
+Not implemented yet.
