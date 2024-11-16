@@ -12,7 +12,7 @@ class ArtistLoader:
 
 
         self.processor = ArtistProcessor()
-        self.data_cache = CacheManager(f'cache_{max_artists}.pkl', self.processor)
+        self.data_cache = CacheManager(f'cache_{max_artists}_artists.pkl', self.processor)
         self.api_client = APIClient()
 
     def fetch_artists(self):
