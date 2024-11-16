@@ -5,24 +5,24 @@ from services.artist_loader import ArtistLoader  # Assuming the ArtistLoader is 
 # Initialize the artist processor
 artist_loader = ArtistLoader(max_artists=1000, debug=True)
 artist_processor = artist_loader.processor
+cache = artist_loader.data_cache
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Sample function to load artist data
-async def load_artists():
+def load_artists():
     try:
-        await artist_loader.load_artists()
+        artist_loader.load_artists()
         logger.info("Artists loaded successfully!")
     except Exception as e:
         logger.error(f"Error loading artists: {e}")
 
 # Start the server with preloaded artist data
-async def on_start(request):
-    # Load x number of artists
-    await load_artists()
-    return web.Response(text="Artists loaded successfully!")
+async def on_startup(app):
+    artist_loader.load_artists()
+    logger.info("Artists loaded successfully!")
 
 async def get_all_artists(request):
     return web.json_response(artist_processor.get_all_artists())
@@ -53,7 +53,6 @@ async def get_genre_popularity(request):
 
 # Get artists by genre in a specific country
 async def get_artists_by_genre_in_country(request):
-    # e.g., ?country=France&genre=Pop
     country = request.query.get('country')  # e.g., ?country=France
     genre = request.query.get('genre')  # e.g., ?genre=Pop
     if not country or not genre:
@@ -65,18 +64,29 @@ async def get_artists_by_genre_in_country(request):
 
     return web.json_response(filtered_artists)
 
-# Define app and routes
-app = web.Application()
+async def on_shutdown(app):
+    logger.info("Shutting down the server...")
+    if not cache.exists():
+        cache.save_cache()
+        logger.info("Cache saved successfully!")
+    else:
+        logger.info("No cache to save. Exiting...")
 
-# Adding on_start to the startup signal
-app.on_startup.append(on_start)
+def main():
+    app = web.Application()
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
 
-# Routes
-app.router.add_get('/artists-by-country', get_artists_by_country)
-app.router.add_get('/genre-popularity', get_genre_popularity)
-app.router.add_get('/artists-by-genre-in-country', get_artists_by_genre_in_country)
+    # Routes
+    app.router.add_get('/artists-by-country', get_artists_by_country)
+    app.router.add_get('/genre-popularity', get_genre_popularity)
+    app.router.add_get('/artists-by-genre-in-country', get_artists_by_genre_in_country)
 
-# Run the app
+    # Run the app
+    return app
+
 if __name__ == '__main__':
-    web.run_app(app, host='0.0.0.0', port=8000)
-
+    try:
+        web.run_app(main(), host='0.0.0.0', port=8000)
+    except KeyboardInterrupt:
+        print("Server interrupted. Exiting...")

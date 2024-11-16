@@ -7,7 +7,7 @@ class ArtistProcessor:
         self.artists_by_country = []
         self.artists_by_genre_by_country = []
 
-    async def process_artist(self, artist_details):
+    def process_artist(self, artist_details):
         """Process artist details and update statistics."""
         def get_value(field, default="Unknown"):
             return field if field and field.strip() else default

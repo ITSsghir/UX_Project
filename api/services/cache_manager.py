@@ -45,3 +45,23 @@ class CacheManager:
             print("Cache saved.")
         except (pickle.PickleError, IOError) as e:
             print(f"Error saving cache: {e}")
+
+    def clear_cache(self):
+        """Clears the cached data."""
+        self.cached_artists_data = []
+        self.cached_total_artists = 0
+        self.cached_country_popularity = {}
+        self.cached_genre_popularity_by_country = {}
+        self.cached_artists_per_country = []
+        self.last_artist_count = 0
+        try:
+            os.remove(self.cache_filepath)
+            print("Cache cleared.")
+        except FileNotFoundError:
+            print("No cache file found.")
+    
+    def exists(self):
+        """Check if the cache exists"""
+        if not os.path.exists(self.cache_filepath):
+            return False
+        return True
