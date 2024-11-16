@@ -78,7 +78,7 @@ Ce projet permet d'explorer :
     > **Remarque** : vous devez être dans le dossier `api/` pour lancer l'API.
 
     ```bash
-    # On le en mode module pour éviter les problèmes de chemin
+    # On le lance en mode module pour éviter les problèmes de chemin
     python -m services.api
     ```
 
