@@ -78,6 +78,7 @@ def main():
     app.on_shutdown.append(on_shutdown)
 
     # Routes
+    app.router.add_get('/artists', get_all_artists)
     app.router.add_get('/artists-by-country', get_artists_by_country)
     app.router.add_get('/genre-popularity', get_genre_popularity)
     app.router.add_get('/artists-by-genre-in-country', get_artists_by_genre_in_country)
