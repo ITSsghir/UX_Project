@@ -1,7 +1,7 @@
 class ArtistProcessor:
-    def __init__(self, artists_data=[]):
-        self.artists_data = artists_data
-        self.total_artists = len(artists_data)
+    def __init__(self):
+        self.artists_data = []
+        self.total_artists = 0
         self.country_popularity = {}
         self.genre_popularity_by_country = {}
         self.artists_by_country = []
@@ -41,7 +41,10 @@ class ArtistProcessor:
         self.update_genre_popularity(country, genres, deezer_fans)
         for genre in genres:
             self.update_artists_by_genre_by_country(genre, name, country, deezer_fans, nb_songs, nb_albums)
-
+        
+        self.artists_data.append(artist_data)
+        self.total_artists += 1
+        
         return artist_data
 
     def update_artists_by_country(self, country, artist_count, song_count, deezer_fans):
