@@ -1,6 +1,7 @@
 import logging
 from aiohttp import web
 from services.artist_loader import ArtistLoader  # Assuming the ArtistLoader is in the artist_loader.py file
+import aiohttp_cors
 
 # Initialize the artist processor
 artist_loader = ArtistLoader(max_artists=1200, debug=True)
@@ -64,6 +65,16 @@ async def get_artists_by_genre_in_country(request):
         
 def main():
     app = web.Application()
+    
+    # Set up CORS
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True,
+            expose_headers="*",
+            allow_headers="*",
+        ),
+    })
+    
     app.on_startup.append(on_startup)
 
     # Routes
@@ -71,6 +82,10 @@ def main():
     app.router.add_get('/artists-by-country', get_artists_by_country)
     app.router.add_get('/genre-popularity', get_genre_popularity)
     app.router.add_get('/artists-by-genre-in-country', get_artists_by_genre_in_country)
+    
+    # Apply CORS to all routes
+    for route in app.router.routes():
+        cors.add(route)
 
     # Run the app
     return app

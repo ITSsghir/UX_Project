@@ -39,7 +39,7 @@ class APIClient:
         results = []
         # Generate the start indices
         start_indices = list(range(0, end_index, 200))
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
             future_to_index = {executor.submit(self.fetch_artists, index): index for index in start_indices}
             for future in concurrent.futures.as_completed(future_to_index):
                 index = future_to_index[future]
