@@ -1,20 +1,81 @@
-import React from 'react'
-// Import styles from the navbar.css file in the styles folder
-import '../styles/navbar.css'
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../styles/navbar.css';
 
-// Create a navbar component that has 3 buttons, each of which sets the visuSwitch state to a different value, it accepts the setVisuSwitch function as a prop
-const Navbar = ({setVisuSwitch}: {setVisuSwitch: Function}) => {
+const Navbar = ({ setVisuSwitch }: { setVisuSwitch: Function }) => {
+  const [countryInput, setCountryInput] = useState('');
+  const [currentView, setCurrentView] = useState('');
+  const navigate = useNavigate();
+
+  const handleCountryInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setCountryInput(event.target.value);
+  };
+
+  const handleNavigateToVisu2 = () => {
+    if (countryInput.trim()) {
+      navigate(`/visualisation2/${countryInput.toLowerCase()}`);
+    } else {
+      alert('Please enter a valid country name.');
+    }
+  };
 
   return (
-    <div className='navbar'>
-        <button onClick={() => setVisuSwitch('')} className='header'>Projet UX</button>
-        <div className='container'>
-            <button onClick={() => setVisuSwitch('visu1')} className='choice'>visu1</button>
-            <button onClick={() => setVisuSwitch('visu2')} className='choice'>visu2</button>
-            <button onClick={() => setVisuSwitch('visu3')} className='choice'>visu3</button>
-        </div>
-    </div>
-  )
-}
+    <div className="navbar">
+      <button
+        onClick={() => {
+          setVisuSwitch('');
+          setCurrentView('');
+          navigate('/'); // Naviguer vers la visualisation 1
+        }}
+        className="header"
+      >
+        Projet UX
+      </button>
+      <div className="container">
+        <button
+          onClick={() => {
+            setVisuSwitch('visu1');
+            setCurrentView('visu1');
+            navigate('/'); // Naviguer vers la visualisation 1
+          }}
+          className="choice"
+        >
+          visu1
+        </button>
+        <button
+          onClick={() => {
+            setVisuSwitch('visu2');
+            setCurrentView('visu2');
+          }}
+          className="choice"
+        >
+          visu2
+        </button>
+        <button
+          onClick={() => {
+            setVisuSwitch('visu3');
+            setCurrentView('visu3');
+          }}
+          className="choice"
+        >
+          visu3
+        </button>
+      </div>
 
-export default Navbar
+      {/* Si la vue actuelle est "visu2", afficher un champ de saisie */}
+      {currentView === 'visu2' && (
+        <div style={{ marginTop: '20px' }}>
+          <input
+            type="text"
+            value={countryInput}
+            onChange={handleCountryInputChange}
+            placeholder="Enter country"
+          />
+          <button onClick={handleNavigateToVisu2}>Go to Country</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Navbar;
