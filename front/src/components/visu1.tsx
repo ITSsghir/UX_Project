@@ -99,18 +99,14 @@ const Visu1: React.FC<MapComponentProps> = ({ width, height, artistsData }) => {
       // Filter artists data by country
       const countryArtists = artistsData.filter((element: any) => element.country === countryName);
 
-      if (countryArtists.length > 0) {
-        // Aggregate data
-        const numberOfArtists = countryArtists.length;
-        const numberOfSongs = countryArtists.number_of_songs;
-        const deezerFans = countryArtists.deezer_fans;
-
-        setCountryDetails({
-          country: countryName,
-          number_of_artists: numberOfArtists,
-          number_of_songs: numberOfSongs,
-          deezer_fans: deezerFans
-        });
+      const countryDetails: CountryDetails = {
+        country: countryName,
+        number_of_artists: countryArtists.length,
+        number_of_songs: countryArtists.reduce((acc: number, curr: any) => acc + curr.nb_songs, 0),
+        deezer_fans: countryArtists.reduce((acc: number, curr: any) => acc + curr.deezer_fans, 0),
+      };
+      if (countryDetails.number_of_artists > 0) {
+        setCountryDetails(countryDetails);
       } else {
         setError('No data available for this country');
       }
@@ -125,17 +121,8 @@ const Visu1: React.FC<MapComponentProps> = ({ width, height, artistsData }) => {
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <svg ref={svgRef}></svg>
-      {hoveredCountry && (
+      {hoveredCountry && countryDetails && (
         <div style={{
-          position: 'absolute',
-          top: 10,
-          left: 10,
-          backgroundColor: 'white',
-          padding: '10px',
-          border: '1px solid black',
-        }}>
-          {countryDetails && (
-            <div style={{
               position: 'absolute',
               top: 150,
               left: 10,
@@ -150,9 +137,7 @@ const Visu1: React.FC<MapComponentProps> = ({ width, height, artistsData }) => {
                 <li>Deezer Fans: {countryDetails.deezer_fans}</li>
               </ul>
             </div>
-          )} 
-        </div>
-      )}
+          )}
       {loading && (
         <div style={{
           position: 'absolute',
