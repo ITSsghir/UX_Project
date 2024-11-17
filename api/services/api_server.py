@@ -4,7 +4,7 @@ from services.artist_loader import ArtistLoader  # Assuming the ArtistLoader is 
 import aiohttp_cors
 
 # Initialize the artist processor
-artist_loader = ArtistLoader(max_artists=1200, debug=True)
+artist_loader = ArtistLoader(debug=True)
 artist_processor = artist_loader.processor
 
 # Set up logging

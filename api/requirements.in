@@ -3,3 +3,4 @@ aiohttp
 virtualenv
 orjson
 pytest
+aioshttp_cors

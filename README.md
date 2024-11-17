@@ -92,7 +92,7 @@ Ce projet permet d'explorer :
     Exemple de requête :
   
     ```bash
-    curl http://localhost:8000/artists-by-genre-in-country?country=France&genre=EBM
+    curl "http://localhost:8000/artists-by-genre-in-country?country=France&genre=EBM"
     ```
 
     Exemple de réponse :
