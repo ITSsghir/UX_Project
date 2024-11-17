@@ -1,0 +1,20 @@
+/* This file contains the css for the visualisation component
+ It should take up the full width of the screen and be centered vertically
+    It should be rendered below the navbar (which has a height of 13% of the screen)
+    It should take up the remaining height of the screen
+
+ */
+
+/* visu.css */
+.visu-container {
+  width: 100%;
+  height: 87%; /* Takes up the remaining height of the screen after the navbar */
+  position: fixed;
+  top: 13%;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center; /* Horizontally center the map */
+  align-items: center;     /* Vertically center the map */
+  background-color: cadetblue;
+}
