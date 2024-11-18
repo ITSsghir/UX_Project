@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { useNavigate } from 'react-router-dom'; // Assurez-vous que useNavigate est importé
 import { FeatureCollection, Geometry, GeoJsonProperties } from 'geojson';
 
 interface MapComponentProps {
-  width: number;
-  height: number;
+  dimensions: { width: number; height: number };
   artistsData: any;
+  setCountrySwitch: (country: string) => void;
+  setVisuSwitch: (visu: string) => void;
+  setCountries: (countries: any) => void;
 }
 
 interface CountryDetails {
@@ -16,14 +17,74 @@ interface CountryDetails {
   deezer_fans: number;
 }
 
-const Visu1: React.FC<MapComponentProps> = ({ width, height, artistsData }) => {
+
+
+const Visu1: React.FC<MapComponentProps> = ({ dimensions, artistsData, setCountrySwitch, setVisuSwitch , setCountries }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<GeoJsonProperties | null>(null);
   const [countryDetails, setCountryDetails] = useState<CountryDetails | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate(); // Utilisez ce hook pour naviguer
+  
+  const renderMap = (svg: any) => {
+    const scale = Math.min(dimensions.width, dimensions.height) / 5;
+    const projection = d3.geoMercator()
+      .scale(scale)
+      .translate([dimensions.width / 2, dimensions.height / 2 + 60]);
 
+    const pathGenerator = d3.geoPath().projection(projection);
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, 8])
+      .translateExtent([[0, 0], [dimensions.width, dimensions.height]])
+      .on('zoom', (event) => {
+        svg.selectAll('g').attr('transform', event.transform);
+      });
+
+    svg.call(zoom);
+
+    const mapGroup = svg.append('g');
+
+    d3.json<FeatureCollection<Geometry>>('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
+        .then((data) => {
+          if (data) {
+            const filteredFeatures = data.features;
+
+            // Get the list of countries
+            setCountries(filteredFeatures.map((feature: any) => feature.properties.name));
+
+            mapGroup.selectAll('path')
+              .data(filteredFeatures)
+              .enter()
+              .append('path')
+              .attr('d', (d: any) => pathGenerator(d) || '')
+              .attr('fill', 'steelblue')
+              .attr('stroke', 'black')
+              .attr('stroke-width', 0.5)
+              .on('mouseover', (event: any, d: any) => {
+                const countryName = d.properties?.name || '';
+                setHoveredCountry(d.properties);
+                fetchCountryDetails(countryName);
+                d3.select(event.currentTarget).attr('fill', 'orange');
+              })
+              .on('mouseout', (event: any) => {
+                setHoveredCountry(null);
+                setCountryDetails(null);
+                d3.select(event.currentTarget).attr('fill', 'steelblue');
+              })
+              .on('click', (event: any, d: any) => {
+                const countryId = d.properties?.name || '';
+                // Get country name and setCurrentCountry to the country name
+                console.log('Clicked on:', countryId);
+                setCountrySwitch(countryId);
+                setVisuSwitch('visu2');
+              });
+          }
+        })
+        .catch(error => {
+          console.error('Error loading or rendering map data:', error);
+        });
+  };
   const fetchCountryDetails = async (countryName: string) => {
     setLoading(true);
     setError(null);
@@ -34,8 +95,8 @@ const Visu1: React.FC<MapComponentProps> = ({ width, height, artistsData }) => {
       const countryDetails: CountryDetails = {
         country: countryName,
         number_of_artists: countryArtists.length,
-        number_of_songs: countryArtists.reduce((acc: number, curr: any) => acc + curr.nb_songs, 0),
-        deezer_fans: countryArtists.reduce((acc: number, curr: any) => acc + curr.deezer_fans, 0),
+        number_of_songs: countryArtists.reduce((acc: number, artist: any) => acc + artist.numberOfSongs, 0),
+        deezer_fans: countryArtists.reduce((acc: number, artist: any) => acc + artist.deezerFans, 0),
       };
       if (countryDetails.number_of_artists > 0) {
         setCountryDetails(countryDetails);
@@ -54,63 +115,11 @@ const Visu1: React.FC<MapComponentProps> = ({ width, height, artistsData }) => {
     if (!svgRef.current) return;
 
     const svg = d3.select(svgRef.current)
-      .attr('width', width)
-      .attr('height', height);
+      .attr('width', dimensions.width)
+      .attr('height', dimensions.height);
 
-    const scale = Math.min(width, height) / 5;
-    const projection = d3.geoMercator()
-      .scale(scale)
-      .translate([width / 2, height / 2 + 160]);
-
-    const pathGenerator = d3.geoPath().projection(projection);
-
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([1, 8])
-      .translateExtent([[0, 0], [width, height]])
-      .on('zoom', (event) => {
-        svg.selectAll('g').attr('transform', event.transform);
-      });
-
-    svg.call(zoom);
-
-    const mapGroup = svg.append('g');
-
-    d3.json<FeatureCollection<Geometry>>('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
-      .then((data) => {
-        if (data) {
-          const filteredFeatures = data.features.filter(
-            (feature) => feature.properties?.name !== 'Antarctica'
-          );
-
-          mapGroup.selectAll('path')
-            .data(filteredFeatures)
-            .enter()
-            .append('path')
-            .attr('d', (d) => pathGenerator(d) || '')
-            .attr('fill', 'steelblue')
-            .attr('stroke', 'black')
-            .attr('stroke-width', 0.5)
-            .on('mouseover', (event, d) => {
-              const countryName = d.properties?.name || '';
-              setHoveredCountry(d.properties);
-              fetchCountryDetails(countryName);
-              d3.select(event.currentTarget).attr('fill', 'orange');
-            })
-            .on('mouseout', (event) => {
-              setHoveredCountry(null);
-              setCountryDetails(null);
-              d3.select(event.currentTarget).attr('fill', 'steelblue');
-            })
-            .on('click', (event, d) => {
-              const countryId = d.properties?.name?.toLowerCase() || ''; // Utilisation de l'ID du pays
-              navigate(`/visualisation2/${countryId}`); // Utilisez navigate au lieu de history.push()
-            });
-        }
-      })
-      .catch(error => {
-        console.error('Error loading or rendering map data:', error);
-      });
-  }, [width, height, artistsData]); // Suppression de fetchCountryDetails dans les dépendances
+    renderMap(svg);
+  }, [dimensions.width, dimensions.height]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>

@@ -15,8 +15,8 @@ const VisuContainer: React.FC<VisuContainerProps> = ({ children }) => {
         const { clientWidth, clientHeight } = containerRef.current;
         // Adjust padding as needed
         setDimensions({
-          width: clientWidth - 20, // Example padding of 20px
-          height: clientHeight - 20, // Example padding of 20px
+          width: clientWidth - 150, // Example padding of 20px
+          height: clientHeight - 150, // Example padding of 20px
         });
       }
     };

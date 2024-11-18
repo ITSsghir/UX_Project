@@ -5,7 +5,6 @@ import Visu2 from './components/visu2';
 import Visu3 from './components/visu3';
 import Navbar from './components/navbar';
 import VisuContainer from './components/visuContainer';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import axios from 'axios';
 
 async function get_data() {
@@ -18,10 +17,78 @@ async function get_data() {
     });
 }
 
+
+const get_countries = (artistsData: any) => {
+  // Get the list of countries from the artistsData
+  // Replace any occurrences of '' or 'Unknown' with 'Antarctica'
+  const countries = artistsData.map((artist: any) => artist.country === '' || artist.country === 'Unknown' ? 'Antarctica' : artist.country);
+  // Cast the array elements to a string
+  const uniqueCountries = new Set(countries);
+  return Array.from(uniqueCountries);
+}
+
+
+const filterDataForVisu1 = (artistsData: any) => {
+  // Filter data for visu1
+  // Return an array of objects with the following structure:
+  // { country: string, numberOfArtists: number, numberOfSongs: number, deezerFans: number }
+  // Replace any occurrences of '' or 'Unknown' with 'Antarctica'
+  return artistsData.map((artist: any) => ({
+    country: artist.country === '' || artist.country === 'Unknown' ? 'Antarctica' : artist.country,
+    numberOfArtists: 1,
+    numberOfSongs: artist.nb_songs,
+    deezerFans: artist.deezer_fans,
+  }));
+}
+
+const filterDataForVisu2 = (artistsData: any, country: string) => {
+  // Filter data for visu2
+  // Return an array of objects with the following structure:
+  // { genre: string, fans: number }
+  // Replace any occurrences of '' or 'Unknown' with 'Other'
+  const genres: any = [];
+
+  if (!country) return genres;
+
+  const countryArtists = artistsData.filter((element: any) => element.country === country);
+
+  // For each country, get the genres
+  countryArtists.forEach((artist: any) => {
+    artist.genres.forEach((genre: any) => {
+      const genreIndex = genres.findIndex((element: any) => element.genre === genre);
+      if (genreIndex === -1) {
+        genres.push({ genre, fans: artist.deezer_fans });
+      } else {
+        genres[genreIndex] += artist.deezer_fans;
+      }
+    });
+  });
+  return genres;
+}
+
+
+
 function App() {
   const [visuSwitch, setVisuSwitch] = React.useState('');
   const [artistsData, setArtistsData]: [any, any] = React.useState([]);
+  const [country, setCountry] = React.useState('');
+  const [genre, setGenre] = React.useState('');
+  const [countries, setCountries] = React.useState([]);
 
+
+  // Render the chosen visualization based on the visuSwitch state and dimensions from VisuContainer
+  const renderChosenVisu = (dimensions: { width: number; height: number }, visuSwitch: string, artistsData: any, country: string, genre: string) => {
+    switch (visuSwitch) {
+      case 'visu1':
+        return <Visu1 dimensions={dimensions} artistsData={filterDataForVisu1(artistsData)} setCountrySwitch={setCountry} setVisuSwitch={setVisuSwitch} setCountries={setCountries} />;
+      case 'visu2':
+        return <Visu2 dimensions={dimensions} artistsData={filterDataForVisu2(artistsData, country)} country={country} setGenreSwitch={setGenre} setCountrySwitch={setCountry} setVisuSwitch={setVisuSwitch} listCountries={countries} />;
+      case 'visu3':
+        return <Visu3 dimensions={dimensions} country={country} genre={genre} setCountrySwitch={setCountry} setGenreSwitch={setGenre} setVisuSwitch={setVisuSwitch} />;
+      default:
+        return <div>Choose a visualization</div>;
+    }
+  }
   React.useEffect(() => {
     get_data().then((data) => {
       setArtistsData(data);
@@ -30,23 +97,12 @@ function App() {
   }, []);
 
   return (
-    <Router>
       <div className="App">
-        <Navbar setVisuSwitch={setVisuSwitch} />
+        <Navbar setVisuSwitch={setVisuSwitch} setCountrySwitch={setCountry} setGenreSwitch={setGenre} />
         <VisuContainer>
-          {(dimensions) => (
-            <Routes>
-              {/* Route pour la Visualisation 1 */}
-              <Route path="/" element={<Visu1 width={dimensions.width} height={dimensions.height} artistsData={artistsData} />} />
-              {/* Route pour la Visualisation 2 */}
-              <Route path="/visualisation2/:countryId" element={<Visu2 width={dimensions.width} height={dimensions.height} artistsData={artistsData} />} />
-              {/* Route pour la Visualisation 3 */}
-              <Route path="/visualisation3/:genre" element={<Visu3 width={dimensions.width} height={dimensions.height} />} />
-            </Routes>
-          )}
+          {(dimensions) => renderChosenVisu(dimensions, visuSwitch, artistsData, country, genre)}
         </VisuContainer>
       </div>
-    </Router>
   );
 }
 

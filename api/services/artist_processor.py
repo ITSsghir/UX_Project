@@ -21,6 +21,8 @@ class ArtistProcessor:
         albums = artist_details.get("albums", [])
         nb_albums = len(albums)
         nb_songs = sum(len(album.get("songs", [])) for album in albums)
+        members = artist_details.get("members", [])
+        
 
         artist_data = {
             "name": name,
@@ -33,9 +35,10 @@ class ArtistProcessor:
             },
             "nb_albums": nb_albums,
             "nb_songs": nb_songs,
-            "country": country
+            "country": country,
+            "members": members
         }
-
+        
         self.update_artists_by_country(country, 1, nb_songs, deezer_fans)
         self.update_country_popularity(country, deezer_fans)
         self.update_genre_popularity(country, genres, deezer_fans)
@@ -128,3 +131,16 @@ class ArtistProcessor:
 
     def get_artists_by_genre_by_country(self):
         return self.artists_by_genre_by_country
+    
+    def get_members(self):
+        members = []
+        for artist in self.artists_data:
+            artist_name = artist.get("name")
+            artist_members = artist.get("members")
+            members.append(
+                {
+                    "artist": artist_name,
+                    "members": artist_members
+                }
+            )
+        return members

@@ -82,3 +82,6 @@ class ArtistLoader:
     
     def get_artists_by_genre_by_country(self):
         return self.processor.artists_by_genre_by_country
+    
+    def get_members(self):
+        return self.processor.get_members()

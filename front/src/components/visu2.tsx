@@ -1,66 +1,38 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { useParams } from 'react-router-dom';
+import { isString } from 'util';
 
 interface Visu2Props {
-  width: number;
-  height: number;
+  dimensions: { width: number; height: number };
   artistsData: any;
+  country: string;
+  setGenreSwitch: (genre: string) => void;
+  setCountrySwitch: (country: string) => void;
+  setVisuSwitch: (visu: string) => void;
+  listCountries: any;
 }
 
-const Visu2: React.FC<Visu2Props> = ({ width, height, artistsData }) => {
-  const { countryId } = useParams<{ countryId: string }>();
+const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenreSwitch, setCountrySwitch, setVisuSwitch, listCountries }) => {
+  const { width, height } = dimensions;
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [genreData, setGenreData] = useState<{ genre: string; fans: number }[]>([]);
+  // Filter the data to get those for the selected country
+  const genreData = artistsData;
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!countryId || !artistsData.length) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const countryArtists = artistsData.filter(
-        (artist: any) => artist.country?.toLowerCase() === countryId.toLowerCase()
-      );
-
-      const genreFansMap: Record<string, number> = {};
-      countryArtists.forEach((artist: any) => {
-        artist.genres.forEach((genre: string) => {
-          if (!genreFansMap[genre]) {
-            genreFansMap[genre] = 0;
-          }
-          genreFansMap[genre] += artist.deezer_fans;
-        });
-      });
-
-      const computedGenreData = Object.entries(genreFansMap).map(([genre, fans]) => ({
-        genre,
-        fans,
-      }));
-
-      setGenreData(computedGenreData);
-    } catch (err) {
-      console.error('Error processing genre data:', err);
-      setError('Failed to process genre data.');
-    } finally {
-      setLoading(false);
-    }
-  }, [countryId, artistsData]);
-
-  useEffect(() => {
+    console.log('genreData:', genreData);
     if (!svgRef.current || !genreData.length) return;
 
     const svg = d3.select(svgRef.current);
 
-    const dynamicWidth = Math.max(width, genreData.length * 80);
+    const dynamicWidth = Math.max(width, genreData.length * 100);
     svg.attr('width', dynamicWidth).attr('height', height + 80);
 
     svg.selectAll('*').remove();
 
-    const margin = { top: 80, right: 20, bottom: 100, left: 70 };
+    const margin = { top: 80, right: 20, bottom: 100, left: 20 };
     const innerWidth = dynamicWidth - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -68,13 +40,20 @@ const Visu2: React.FC<Visu2Props> = ({ width, height, artistsData }) => {
 
     const xScale = d3
       .scaleBand()
-      .domain(genreData.map((d) => d.genre))
+      .domain(genreData.map((d: any) => d.genre))
       .range([0, innerWidth])
       .padding(0.2);
 
+    let maxFans = d3.max(genreData, (d: any) => d.fans) || 0;
+    // Convet the maxFans to a number
+    if (isString(maxFans)){
+      maxFans = parseInt(maxFans, 10);
+    }
+    maxFans = Math.ceil(maxFans / 100) * 100;
     const yScale = d3
       .scaleLinear()
-      .domain([0, d3.max(genreData, (d) => d.fans) || 0])
+      // 
+      .domain([0, maxFans])
       .nice()
       .range([innerHeight, 0]);
 
@@ -113,33 +92,27 @@ const Visu2: React.FC<Visu2Props> = ({ width, height, artistsData }) => {
       .enter()
       .append('rect')
       .attr('class', 'bar')
-      .attr('x', (d) => xScale(d.genre) || 0)
-      .attr('y', (d) => yScale(d.fans))
+      .attr('x', (d: any) => xScale(d.genre) || 0)
+      .attr('y', (d: any) => yScale(d.fans))
       .attr('width', xScale.bandwidth())
-      .attr('height', (d) => innerHeight - yScale(d.fans))
+      .attr('height', (d: any) => innerHeight - yScale(d.fans))
       .attr('fill', '#4682B4')
-      .on('mouseover', (event, d) => {
-        console.log('Mouseover triggered for', d.genre); // Debugging
-        tooltip
-          .style('opacity', 1)
-          .html(
-            `<strong>Country:</strong> ${countryId}<br/>
-             <strong>Genre:</strong> ${d.genre}<br/>
-             <strong>Fans:</strong> ${d.fans.toLocaleString()}`
-          )
-          .style('left', `${event.pageX + 10}px`)
-          .style('top', `${event.pageY}px`);
-
-        // Change the color of the bar on mouseover
-        d3.select(event.currentTarget).attr('fill', '#FF7F50');
+      .on('mouseover', (event, d: any) => {
+        tooltip.style('opacity', 1); // Show the tooltip
+        tooltip.html(`Genre: ${d.genre}<br>Fans: ${d.fans}`); // Set the text of the tooltip
+        d3.select(event.currentTarget).attr('fill', 'orange');
       })
       .on('mousemove', (event) => {
-        tooltip.style('left', `${event.pageX + 10}px`).style('top', `${event.pageY}px`);
+        d3.select(event.currentTarget).attr('fill', 'orange');
       })
       .on('mouseout', (event) => {
         tooltip.style('opacity', 0); // Hide the tooltip
         d3.select(event.currentTarget).attr('fill', '#4682B4'); // Restore the original color
-      });
+      })
+      .on('click', (event, d: any) => {
+        setGenreSwitch(d.genre);
+        setVisuSwitch('visu3');
+      })
 
     svg
       .append('text')
@@ -160,6 +133,7 @@ const Visu2: React.FC<Visu2Props> = ({ width, height, artistsData }) => {
   }, [genreData, width, height]);
 
   return (
+    // Add a Drop-down menu for country selection after the h2 tag
     <div
       style={{
         position: 'relative',
@@ -170,10 +144,53 @@ const Visu2: React.FC<Visu2Props> = ({ width, height, artistsData }) => {
         whiteSpace: 'nowrap',
       }}
     >
-      <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Statistiques pour le pays: {countryId}</h2>
+      <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Statistiques pour le pays: {country}</h2>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+        <button
+          onClick={() => {
+            setCountrySwitch('');
+            setVisuSwitch('');
+          }}
+          style={{ marginRight: '10px' }}
+        >
+          Reset
+        </button>
+        <select
+          value={country}
+          onChange={(event) => {
+            setCountrySwitch(event.target.value);
+          }}
+          style={{ padding: '5px' }}
+        >
+          <option value="">Choisissez un pays</option>
+          {listCountries.map((country: any) => (
+            <option key={country} value={country}>
+              {country}
+            </option>
+          ))}
+        </select>
+      </div>
+      {hoveredGenre && genreData && (
+        <div style={{
+          position: 'absolute',
+          top: 150,
+          left: 10,
+          backgroundColor: 'white',
+          padding: '10px',
+          border: '1px solid black',
+        }}>
+          <h4>Genre: {hoveredGenre}</h4>
+          <ul>
+            <li>Fans: {genreData.find((element: any) => element.genre === hoveredGenre)?.fans}</li>
+          </ul>
+        </div>
+      )}
+      
       {loading && <div>Loading data...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
-      <svg ref={svgRef}></svg>
+      {country && !loading && !error && 
+        <svg ref={svgRef}></svg>
+      }
     </div>
   );
 };
