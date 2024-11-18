@@ -17,17 +17,6 @@ async function get_data() {
     });
 }
 
-
-const get_countries = (artistsData: any) => {
-  // Get the list of countries from the artistsData
-  // Replace any occurrences of '' or 'Unknown' with 'Antarctica'
-  const countries = artistsData.map((artist: any) => artist.country === '' || artist.country === 'Unknown' ? 'Antarctica' : artist.country);
-  // Cast the array elements to a string
-  const uniqueCountries = new Set(countries);
-  return Array.from(uniqueCountries);
-}
-
-
 const filterDataForVisu1 = (artistsData: any) => {
   // Filter data for visu1
   // Return an array of objects with the following structure:
