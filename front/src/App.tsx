@@ -17,6 +17,27 @@ async function get_data() {
     });
 }
 
+function cleanUpData(data: any) {
+  // If the country is empty or unknown, replace it with 'Antarctica'
+  // If the genres are empty or unknown, replace them with 'Other'
+  return data.map((artist: any) => {
+    if (!artist.country || artist.country === ''|| artist.country.toLowerCase() === 'unknown') {
+      artist.country = 'Antarctica';
+    }
+    if (!artist.genres || artist.genres.length === 0) {
+      artist.genres = ['Other'];
+    } else {
+      artist.genres = artist.genres.map((genre: any) => {
+        if (!genre || genre === '' || genre.toLowerCase() === 'unknown') {
+          return 'Other';
+        }
+        return genre;
+      });
+    }
+    return artist;
+  });
+}
+
 const filterDataForVisu1 = (artistsData: any) => {
   // Filter data for visu1
   // Return an array of objects with the following structure:
@@ -46,7 +67,12 @@ const filterDataForVisu2 = (artistsData: any, country: string) => {
     artist.genres.forEach((genre: any) => {
       const genreIndex = genres.findIndex((element: any) => element.genre === genre);
       if (genreIndex === -1) {
-        genres.push({ genre, fans: artist.deezer_fans });
+        // If the genre is empty or unknown, add it to the 'Other' category (even if it's just some spaces)
+        if (!genre || genre === 'Unknown') {
+          genres.push({ genre: 'Other', fans: artist.deezer_fans });
+        } else {
+          genres.push({ genre, fans: artist.deezer_fans });
+        }
       } else {
         genres[genreIndex] += artist.deezer_fans;
       }
@@ -91,7 +117,7 @@ function App() {
   }
   React.useEffect(() => {
     get_data().then((data) => {
-      setArtistsData(data);
+      setArtistsData(cleanUpData(data));
     });
     getCountries().then((data) => {
       setCountries(data);
