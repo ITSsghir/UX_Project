@@ -17,7 +17,7 @@ const Navbar: React.FC<NavbarProps> = ({ setVisuSwitch, setCountrySwitch, setGen
         }}
         className="header"
       >
-        Projet UX
+        Wasabi : Là où la musique rencontre les données
       </button>
       <div className="container">
         <button
@@ -26,7 +26,7 @@ const Navbar: React.FC<NavbarProps> = ({ setVisuSwitch, setCountrySwitch, setGen
           }}
           className="choice"
         >
-          visu1
+          Artistes par Pays
         </button>
         <button
           onClick={() => {
@@ -34,7 +34,7 @@ const Navbar: React.FC<NavbarProps> = ({ setVisuSwitch, setCountrySwitch, setGen
           }}
           className="choice"
         >
-          visu2
+          Genres Musicaux par Pays
         </button>
         <button
           onClick={() => {
@@ -42,7 +42,7 @@ const Navbar: React.FC<NavbarProps> = ({ setVisuSwitch, setCountrySwitch, setGen
           }}
           className="choice"
         >
-          visu3
+          Groupes et Artistes par Genre
         </button>
       </div>
     </div>
