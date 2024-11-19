@@ -7,7 +7,6 @@ interface MapComponentProps {
   artistsData: any;
   setCountrySwitch: (country: string) => void;
   setVisuSwitch: (visu: string) => void;
-  setCountries: (countries: any) => void;
 }
 
 interface CountryDetails {
@@ -17,9 +16,7 @@ interface CountryDetails {
   deezer_fans: number;
 }
 
-
-
-const Visu1: React.FC<MapComponentProps> = ({ dimensions, artistsData, setCountrySwitch, setVisuSwitch , setCountries }) => {
+const Visu1: React.FC<MapComponentProps> = ({ dimensions, artistsData, setCountrySwitch, setVisuSwitch }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hoveredCountry, setHoveredCountry] = useState<GeoJsonProperties | null>(null);
   const [countryDetails, setCountryDetails] = useState<CountryDetails | null>(null);
@@ -49,10 +46,6 @@ const Visu1: React.FC<MapComponentProps> = ({ dimensions, artistsData, setCountr
         .then((data) => {
           if (data) {
             const filteredFeatures = data.features;
-
-            // Get the list of countries
-            setCountries(filteredFeatures.map((feature: any) => feature.properties.name));
-
             mapGroup.selectAll('path')
               .data(filteredFeatures)
               .enter()
