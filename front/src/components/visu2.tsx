@@ -24,6 +24,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
   const svgRef = useRef<SVGSVGElement | null>(null);
   // Filter the data to get those for the selected country
   const genreData = trimData(filterDataForVisu2(artistsData, country));
+  console.log('genreData:', genreData);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
@@ -81,7 +82,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('transform', 'rotate(-30)')
       .style('font-size', '10px');
 
-    // Add bars to the chart
+    // Add bars to the chart (if no genre data is available, display a message)
     chartGroup
       .selectAll('.bar')
       .data(genreData)
@@ -92,10 +93,24 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('ry', 5)
       .attr('stroke', 'black')
       .attr('stroke-width', 1)
-      .attr('x', (d: any) => xScale(d.genre) || 0)
+      .attr('stroke-opacity', 0.5)
+      // Set the x and y attributes to position the bars correctly
+      // Use the xScale and yScale functions to position the bars
+      // Use the bandwidth function to set the width of the bars (20 pixels and centered on its genre)
+      .attr('x', (d: any) => {
+        // If the xScale function doesn't return a value, return 0
+        return xScale(d.genre) ?? 0;
+      })
       .attr('y', (d: any) => yScale(d.fans))
+      // Set the width of the bars to 20 pixels
       .attr('width', xScale.bandwidth())
-      .attr('height', (d: any) => innerHeight - yScale(d.fans))
+      .attr('height', (d: any) => {
+        if (yScale(d.fans) === undefined) {
+          return innerHeight;
+        } else {
+          return innerHeight - yScale(d.fans) ?? 0;
+        }
+      })
       .attr('fill', '#4682B4')
       .on('mouseover', (event, d: any) => {
         d3.select(event.currentTarget).attr('fill', 'orange');
@@ -183,7 +198,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
         overflowY: 'hidden',
         whiteSpace: 'nowrap',
       }}
-    >      
+    >
     {hoveredGenre && genreData && (
         <div style={{
           position: 'absolute',
@@ -229,7 +244,8 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       
       {loading && <div>Loading data...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
-      {country && !loading && !error && 
+      {country && genreData.length === 0 && <div>No data available for the selected country</div>}
+      {genreData.length > 0 &&
         <svg ref={svgRef}></svg>
       }
     </div>
