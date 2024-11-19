@@ -6,7 +6,6 @@ import Visu3 from './components/visu3';
 import Navbar from './components/navbar';
 import VisuContainer from './components/visuContainer';
 import axios from 'axios';
-import countryList from 'react-select-country-list'
 
 async function get_data() {
   return axios.get('http://localhost:8000/artists')
