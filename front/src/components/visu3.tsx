@@ -13,7 +13,13 @@ const Visu3: React.FC<Visu3Props> = ({ dimensions, country, genre, setCountrySwi
   return (
     <div>
       <h1>Visu3</h1>
-      <p>Dimensions: {JSON.stringify(dimensions)}</p>
+      <p>Genre: {genre}</p>
+      <p>Country: {country}</p>
+      <button onClick={() => {
+        setVisuSwitch('');
+        setCountrySwitch('');
+        setGenreSwitch('');
+      } }>Reset</button>
     </div>
   )
 }
