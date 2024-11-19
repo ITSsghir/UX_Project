@@ -10,13 +10,20 @@ interface Visu2Props {
   setCountrySwitch: (country: string) => void;
   setVisuSwitch: (visu: string) => void;
   listCountries: any;
+  filterDataForVisu2: (artistsData: any, country: string) => any;
 }
 
-const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenreSwitch, setCountrySwitch, setVisuSwitch, listCountries }) => {
+function trimData(data: any) {
+  // Remove any entries with missing data, i.e. genre, but keep those with 0 fans
+  const filteredData = data.filter((entry: any) => entry.genre !== '' && entry.fans !== '');
+  return filteredData;
+}
+
+const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenreSwitch, setCountrySwitch, setVisuSwitch, listCountries, filterDataForVisu2 }) => {
   const { width, height } = dimensions;
   const svgRef = useRef<SVGSVGElement | null>(null);
   // Filter the data to get those for the selected country
-  const genreData = artistsData;
+  const genreData = trimData(filterDataForVisu2(artistsData, country));
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
@@ -32,7 +39,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
 
     svg.selectAll('*').remove();
 
-    const margin = { top: 80, right: 20, bottom: 100, left: 70 };
+    const margin = { top: 80, right: 20, bottom: 100, left: 20 };
     const innerWidth = dynamicWidth - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -57,11 +64,13 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .nice()
       .range([innerHeight, 0]);
 
+    // Add the y-axis to the chart
     chartGroup
       .append('g')
       .call(d3.axisLeft(yScale).ticks(5))
       .attr('class', 'y-axis');
 
+    // Add the x-axis to the chart
     chartGroup
       .append('g')
       .call(d3.axisBottom(xScale))
@@ -72,12 +81,17 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('transform', 'rotate(-30)')
       .style('font-size', '10px');
 
+    // Add bars to the chart
     chartGroup
       .selectAll('.bar')
       .data(genreData)
       .enter()
       .append('rect')
       .attr('class', 'bar')
+      .attr('rx', 5)
+      .attr('ry', 5)
+      .attr('stroke', 'black')
+      .attr('stroke-width', 1)
       .attr('x', (d: any) => xScale(d.genre) || 0)
       .attr('y', (d: any) => yScale(d.fans))
       .attr('width', xScale.bandwidth())
@@ -99,6 +113,11 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .on('mouseenter', (event, d: any) => {
         setHoveredGenre(d.genre);
       })
+      .on('mouseleave', () => {
+        setHoveredGenre(null);
+      })
+    
+    // Add labels to the bars, even if the value is 0
     chartGroup
       .selectAll('.label')
       .data(genreData)
@@ -106,12 +125,13 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .append('text')
       .attr('class', 'label')
       .attr('x', (d: any) => (xScale(d.genre) ?? 0) + xScale.bandwidth() / 2) // Utiliser une valeur par défaut si xScale retourne undefined
-      .attr('y', (d: any) => (yScale(d.fans) ?? 0) - 5) // Juste au-dessus de la barre
+      .attr('y', (d: any) => (yScale(d.fans) ?? 0) - 20) // Juste au-dessus de la barre
+      .attr('dy', '0.75em')
       .attr('text-anchor', 'middle') // Centrer le texte
       .attr('font-size', '12px')
       .attr('fill', 'white')
       .text((d: any) => {
-        if (d.fans > 0) {
+        if (d.fans >= 0) {
           return d.fans.toLocaleString();
         }
         return '';
@@ -132,6 +152,8 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
         setGenreSwitch(d.genre);
         setVisuSwitch('visu3');
       });
+    
+    // Add axis labels to the chart
     svg
       .append('text')
       .attr('class', 'y-axis-label')
@@ -145,7 +167,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('text-anchor', 'middle')
       .attr(
         'transform',
-        `translate(${margin.left + innerWidth / 2}, ${margin.top + innerHeight + 70})`
+        `translate(${margin.left + innerWidth / 2}, ${margin.top + innerHeight + margin.bottom / 2})`
       )
       .text('Music Genres');
   }, [genreData, width, height]);
