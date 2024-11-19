@@ -6,6 +6,7 @@ import Visu3 from './components/visu3';
 import Navbar from './components/navbar';
 import VisuContainer from './components/visuContainer';
 import axios from 'axios';
+import countryList from 'react-select-country-list'
 
 async function get_data() {
   return axios.get('http://localhost:8000/artists')
@@ -55,20 +56,17 @@ const filterDataForVisu2 = (artistsData: any, country: string) => {
   return genres;
 }
 
-const getCountries = (artistsData: any) => {
-  // Get the list of countries from the artistsData
-  const countries = artistsData.map((artist: any) => artist.country);
-  if (countries.includes('')) {
-    // Replace any occurrences of '' with 'Antarctica'
-    countries[countries.indexOf('')] = 'Antarctica';
-  }
-  // Convert the list of countries to a list of strings
-  countries.map((country: any) => {
-    if (typeof country !== 'string') country.toString();
-  });
-
-  // Remove duplicates
-  return Array.from(new Set(countries));
+async function getCountries() {
+  // Get the list of countries from GeoJSON
+  const features = await axios.get('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+    .then((response) => {
+      return response.data.features;
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+  const countries = features.map((feature: any) => feature.properties.name);
+  return countries;
 }
 
 function App() {
@@ -83,9 +81,9 @@ function App() {
   const renderChosenVisu = (dimensions: { width: number; height: number }, visuSwitch: string, artistsData: any, country: string, genre: string) => {
     switch (visuSwitch) {
       case 'visu1':
-        return <Visu1 dimensions={dimensions} artistsData={filterDataForVisu1(artistsData)} setCountrySwitch={setCountry} setVisuSwitch={setVisuSwitch} setCountries={setCountries} />;
+        return <Visu1 dimensions={dimensions} artistsData={filterDataForVisu1(artistsData)} setCountrySwitch={setCountry} setVisuSwitch={setVisuSwitch} />;
       case 'visu2':
-        return <Visu2 dimensions={dimensions} artistsData={filterDataForVisu2(artistsData, country)} country={country} setGenreSwitch={setGenre} setCountrySwitch={setCountry} setVisuSwitch={setVisuSwitch} listCountries={countries} />;
+        return <Visu2 dimensions={dimensions} artistsData={artistsData} country={country} setGenreSwitch={setGenre} setCountrySwitch={setCountry} setVisuSwitch={setVisuSwitch} listCountries={countries} filterDataForVisu2={filterDataForVisu2} />;
       case 'visu3':
         return <Visu3 dimensions={dimensions} country={country} genre={genre} setCountrySwitch={setCountry} setGenreSwitch={setGenre} setVisuSwitch={setVisuSwitch} />;
       default:
@@ -95,6 +93,9 @@ function App() {
   React.useEffect(() => {
     get_data().then((data) => {
       setArtistsData(data);
+    });
+    getCountries().then((data) => {
+      setCountries(data);
     });
   }, []);
 
