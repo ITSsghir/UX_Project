@@ -55,7 +55,21 @@ const filterDataForVisu2 = (artistsData: any, country: string) => {
   return genres;
 }
 
+const getCountries = (artistsData: any) => {
+  // Get the list of countries from the artistsData
+  const countries = artistsData.map((artist: any) => artist.country);
+  if (countries.includes('')) {
+    // Replace any occurrences of '' with 'Antarctica'
+    countries[countries.indexOf('')] = 'Antarctica';
+  }
+  // Convert the list of countries to a list of strings
+  countries.map((country: any) => {
+    if (typeof country !== 'string') country.toString();
+  });
 
+  // Remove duplicates
+  return Array.from(new Set(countries));
+}
 
 function App() {
   const [visuSwitch, setVisuSwitch] = React.useState('');
@@ -81,7 +95,6 @@ function App() {
   React.useEffect(() => {
     get_data().then((data) => {
       setArtistsData(data);
-      console.log(data);
     });
   }, []);
 
