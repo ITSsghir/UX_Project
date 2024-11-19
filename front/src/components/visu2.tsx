@@ -32,7 +32,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
 
     svg.selectAll('*').remove();
 
-    const margin = { top: 80, right: 20, bottom: 100, left: 20 };
+    const margin = { top: 80, right: 20, bottom: 100, left: 70 };
     const innerWidth = dynamicWidth - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
@@ -72,20 +72,6 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('transform', 'rotate(-30)')
       .style('font-size', '10px');
 
-    // Tooltip initialisation
-    const tooltip = d3
-      .select('body')
-      .append('div')
-      .attr('id', 'tooltip')
-      .style('position', 'absolute')
-      .style('background-color', '#f9f9f9')
-      .style('border', '1px solid #ccc')
-      .style('padding', '10px')
-      .style('border-radius', '4px')
-      .style('pointer-events', 'none')
-      .style('box-shadow', '0 2px 4px rgba(0, 0, 0, 0.2)')
-      .style('opacity', 0);
-
     chartGroup
       .selectAll('.bar')
       .data(genreData)
@@ -98,22 +84,54 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('height', (d: any) => innerHeight - yScale(d.fans))
       .attr('fill', '#4682B4')
       .on('mouseover', (event, d: any) => {
-        tooltip.style('opacity', 1); // Show the tooltip
-        tooltip.html(`Genre: ${d.genre}<br>Fans: ${d.fans}`); // Set the text of the tooltip
         d3.select(event.currentTarget).attr('fill', 'orange');
       })
       .on('mousemove', (event) => {
         d3.select(event.currentTarget).attr('fill', 'orange');
       })
       .on('mouseout', (event) => {
-        tooltip.style('opacity', 0); // Hide the tooltip
         d3.select(event.currentTarget).attr('fill', '#4682B4'); // Restore the original color
       })
       .on('click', (event, d: any) => {
         setGenreSwitch(d.genre);
         setVisuSwitch('visu3');
       })
-
+      .on('mouseenter', (event, d: any) => {
+        setHoveredGenre(d.genre);
+      })
+    chartGroup
+      .selectAll('.label')
+      .data(genreData)
+      .enter()
+      .append('text')
+      .attr('class', 'label')
+      .attr('x', (d: any) => (xScale(d.genre) ?? 0) + xScale.bandwidth() / 2) // Utiliser une valeur par défaut si xScale retourne undefined
+      .attr('y', (d: any) => (yScale(d.fans) ?? 0) - 5) // Juste au-dessus de la barre
+      .attr('text-anchor', 'middle') // Centrer le texte
+      .attr('font-size', '12px')
+      .attr('fill', 'white')
+      .text((d: any) => {
+        if (d.fans > 0) {
+          return d.fans.toLocaleString();
+        }
+        return '';
+      })
+      .on('mouseenter', (event, d: any) => {
+        setHoveredGenre(d.genre);
+      })
+      .on('mouseleave', () => {
+        setHoveredGenre(null);
+      })
+      .on('mousemove', (event) => {
+        d3.select(event.currentTarget).attr('fill', 'orange');
+      })
+      .on('mouseout', (event) => {
+        d3.select(event.currentTarget).attr('fill', 'white'); // Restore the original color
+      })
+      .on('click', (event, d: any) => {
+        setGenreSwitch(d.genre);
+        setVisuSwitch('visu3');
+      });
     svg
       .append('text')
       .attr('class', 'y-axis-label')
@@ -143,7 +161,22 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
         overflowY: 'hidden',
         whiteSpace: 'nowrap',
       }}
-    >
+    >      
+    {hoveredGenre && genreData && (
+        <div style={{
+          position: 'absolute',
+          top: 150,
+          left: 10,
+          backgroundColor: 'white',
+          padding: '10px',
+          border: '1px solid black',
+        }}>
+          <h4>Genre: {hoveredGenre}</h4>
+          <ul>
+            <li>Fans: {genreData.find((element: any) => element.genre === hoveredGenre)?.fans}</li>
+          </ul>
+        </div>
+      )}
       <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Statistiques pour le pays: {country}</h2>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
         <button
@@ -170,21 +203,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
           ))}
         </select>
       </div>
-      {hoveredGenre && genreData && (
-        <div style={{
-          position: 'absolute',
-          top: 150,
-          left: 10,
-          backgroundColor: 'white',
-          padding: '10px',
-          border: '1px solid black',
-        }}>
-          <h4>Genre: {hoveredGenre}</h4>
-          <ul>
-            <li>Fans: {genreData.find((element: any) => element.genre === hoveredGenre)?.fans}</li>
-          </ul>
-        </div>
-      )}
+
       
       {loading && <div>Loading data...</div>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
