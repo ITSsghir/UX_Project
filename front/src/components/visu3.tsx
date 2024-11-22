@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
 interface Member {
@@ -13,6 +13,8 @@ interface Member {
 interface Artist {
   id: number;
   name: string;
+  genres: string[];
+  country: string;
   members: Member[];
   nb_members: number;
 }
@@ -25,6 +27,8 @@ interface Visu3Props {
   setGenreSwitch: (genre: string) => void;
   setVisuSwitch: (visu: string) => void;
   artistsData: Artist[];
+  listCountries: string[];
+  filterDataForVisu3: (artistsData: Artist[], country: string, genre: string) => Artist[];
 }
 
 const Visu3: React.FC<Visu3Props> = ({
@@ -35,15 +39,58 @@ const Visu3: React.FC<Visu3Props> = ({
   setGenreSwitch,
   setVisuSwitch,
   artistsData,
+  listCountries,
+  filterDataForVisu3,
 }) => {
   const { width, height } = dimensions;
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const [filteredData, setFilteredData] = useState<Artist[]>(filterDataForVisu3(artistsData, country, genre));
+  const [filteredGenres, setFilteredGenres] = useState<string[]>([]);
+  const genres = new Set<string>();
+  filteredData.forEach((artist) => {
+    artist.genres.forEach((genre) => {
+      genres.add(genre);
+    }
+    );
+  }
+  );
+  setFilteredGenres(Array.from(genres));
+
 
   useEffect(() => {
-    if (!svgRef.current) return;
+    setVisuSwitch('visu3');
+  }, [setVisuSwitch]);
+
+  // Step 1: Filter data by country and genre when either is selected
+  useEffect(() => {
+    if (country && genre) {
+      setGenreSwitch(genre);
+      setCountrySwitch(country);
+      const newFilteredData = filterDataForVisu3(artistsData, country, genre);
+      setFilteredData(newFilteredData);
+      if (country) {
+        const genres = new Set<string>();
+        artistsData.forEach((artist) => {
+          if (artist.country === country) {
+            artist.genres.forEach((genre) => {
+              genres.add(genre);
+            });
+          }
+        });
+        setFilteredGenres(Array.from(genres));
+      }
+    }
+    if (!svgRef.current || !country || !genre || !filteredData.length) return;
+
+    if(!country && genre) {
+      setFilteredData([]);
+      setFilteredGenres([]);
+      setGenreSwitch('');
+    }
 
     const svg = d3.select(svgRef.current);
-    svg.selectAll('*').remove(); // Clean the canvas
+    if (!svg) return;
+    svg.selectAll('*').remove(); // Clear the canvas
 
     const margin = { top: 20, right: 20, bottom: 20, left: 20 };
     const innerWidth = width - margin.left - margin.right;
@@ -61,12 +108,12 @@ const Visu3: React.FC<Visu3Props> = ({
     const nodes: any[] = [];
     const links: any[] = [];
 
-    artistsData.forEach((artist, i) => {
+    filteredData.forEach((artist, i) => {
       const artistNode = {
         id: `artist-${artist.id}`,
         name: artist.name,
         type: 'artist',
-        radius: 50 + artist.nb_members * 5, // Larger groups get larger bubbles
+        radius: 50 + artist.nb_members * 5,
         color: colorScale(artist.id.toString()),
         x: Math.random() * innerWidth,
         y: Math.random() * innerHeight,
@@ -90,21 +137,13 @@ const Visu3: React.FC<Visu3Props> = ({
       });
     });
 
-    // Create simulation for force-directed graph
-    const simulation = d3
+    // Force simulation setup
+    d3
       .forceSimulation(nodes)
-      .force(
-        'link',
-        d3
-          .forceLink(links)
-          .id((d: any) => d.id)
-          .distance(10)
-      )
+      .force('link', d3.forceLink(links).id((d: any) => d.id).distance(10))
       .force('charge', d3.forceManyBody().strength(0))
       .force('center', d3.forceCenter(innerWidth / 2, innerHeight / 2))
       .force('collision', d3.forceCollide().radius((d: any) => d.radius + 10))
-      // Limit to the width and height of the canvas (including the margin), so nodes don't go off-screen
-      // Resize the nodes to fit within the canvas
       .force('x', d3.forceX().strength(0.1).x((d: any) => Math.max(d.radius, Math.min(innerWidth - d.radius, d.x))))
       .force('y', d3.forceY().strength(0.1).y((d: any) => Math.max(d.radius, Math.min(innerHeight - d.radius, d.y))))
       .on('tick', ticked);
@@ -130,7 +169,7 @@ const Visu3: React.FC<Visu3Props> = ({
       .attr('stroke-width', 2);
 
     // Add text labels for artist nodes
-    const labels = chartGroup
+    chartGroup
       .selectAll('text')
       .data(nodes)
       .enter()
@@ -179,12 +218,8 @@ const Visu3: React.FC<Visu3Props> = ({
         tooltip.style('display', 'none');
       });
 
+    // Handle ticks in the simulation
     function ticked() {
-      chartGroup
-        .selectAll('circle')
-        .attr('cx', (d: any) => d.x)
-        .attr('cy', (d: any) => d.y);
-
       chartGroup
         .selectAll('line')
         .attr('x1', (d: any) => d.source.x)
@@ -193,32 +228,93 @@ const Visu3: React.FC<Visu3Props> = ({
         .attr('y2', (d: any) => d.target.y);
 
       chartGroup
+        .selectAll('circle')
+        .attr('cx', (d: any) => d.x)
+        .attr('cy', (d: any) => d.y);
+
+      chartGroup
         .selectAll('text')
         .attr('x', (d: any) => d.x)
         .attr('y', (d: any) => d.y);
     }
-
-    return () => {
-      simulation.stop();
-      tooltip.remove();
-    };
-  }, [dimensions, artistsData, width, height]);
+  }, [country, genre, width, height, artistsData, filterDataForVisu3]);
 
   return (
     <div>
-      <h1>Visualisation des artistes et membres</h1>
-      <p>Genre: {genre}</p>
-      <p>Pays: {country}</p>
-      <button
-        onClick={() => {
-          setVisuSwitch('');
-          setCountrySwitch('');
-          setGenreSwitch('');
-        }}
+      <h2>Visualization 3: Artists and Members Network</h2>
+      {/* Country Dropdown */}
+      <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '20px',
+      }}
       >
-        Réinitialiser
-      </button>
-      <svg ref={svgRef}></svg>
+        <label style={{ marginRight: '20px' }}>
+          Select Country:
+          <select value={country} onChange={(e) => {
+            setCountrySwitch(e.target.value);
+            setGenreSwitch('');
+          }
+          } style={{
+            display: 'inline-block',
+              padding: '5px 10px',
+              borderRadius: '5px',
+              border: 'none',
+              backgroundColor: '#3A3F58',
+              margin: '5px',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s',
+          }}>
+            {listCountries.map((countryOption, index) => (
+              <option key={index} value={countryOption}>
+                {countryOption}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* Genre Dropdown (only visible when a country is selected) */}
+        {country && filteredGenres.length > 0 && (
+          <>
+            <label style={{ marginRight: '20px' }}>
+              Select Genre:
+              <select value={genre} onChange={(e) => setGenreSwitch(e.target.value)} style={{
+                display: 'inline-block',
+                padding: '5px 10px',
+                borderRadius: '5px',
+                border: 'none',
+                backgroundColor: '#3A3F58',
+                margin: '5px',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s',
+              }}>
+                <option value="">Choose a genre</option>
+                {filteredGenres.map((genreOption, index) => (
+                  <option key={index} value={genreOption}>
+                    {genreOption}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
+    </div>
+      {country && genre && filteredData.length > 0 && (
+      <div style={{ 
+        display: 'flex',
+        justifyContent: 'center',
+        border: '1px solid #3A3F58',
+        borderRadius: '5px',
+        padding: '10px',
+        marginBottom: '20px',
+      }}>
+        {/* D3 Visualization */}
+        {country && genre && <svg ref={svgRef}></svg>}
+      </div>
+      )}
     </div>
   );
 };
