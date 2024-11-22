@@ -44,7 +44,9 @@ const Visu1: React.FC<MapComponentProps> = ({ dimensions, artistsData, setCountr
     .nice();
 
   const renderMap = (svg: any, genres: string[]) => {
-    svg.selectAll('*').remove();
+    if (genres !== selectedGenres){
+      d3.selectAll('*').remove();
+    }
     const scale = Math.min(dimensions.width, dimensions.height) / 5;
     const projection = d3.geoMercator()
       .scale(scale)
@@ -172,7 +174,9 @@ const Visu1: React.FC<MapComponentProps> = ({ dimensions, artistsData, setCountr
     const svg = d3.select(svgRef.current)
       .attr('width', dimensions.width)
       .attr('height', dimensions.height);
-
+    // If the dimensions change, re-render the map
+    if (dimensions.width === 0 || dimensions.height === 0) return;
+    // Update the map when the selected genres change
     renderMap(svg, selectedGenres);
   }, [dimensions.width, dimensions.height, selectedGenres]);
 
