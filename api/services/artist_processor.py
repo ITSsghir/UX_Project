@@ -11,9 +11,14 @@ class ArtistProcessor:
         """Process artist details and update statistics."""
         def get_value(field, default="Unknown"):
             return field if field and field.strip() else default
-
         name = get_value(artist_details.get("name", ""))
         location = artist_details.get("location", {})
+        end_area = location.get("endArea", {})
+        endAreaName = get_value(end_area.get("name", ""))
+        lifeSpan = artist_details.get("lifeSpan", {})
+        ended = lifeSpan.get("ended", False)
+        type_artist = artist_details.get("type", "")
+        
         city = get_value(location.get("city", ""))
         country = get_value(location.get("country", ""))
         deezer_fans = artist_details.get("deezerFans", 0)
@@ -22,13 +27,18 @@ class ArtistProcessor:
         nb_albums = len(albums)
         nb_songs = sum(len(album.get("songs", [])) for album in albums)
         members = artist_details.get("members", [])
+        nb_members = len(members)
         
 
         artist_data = {
+            "id": self.total_artists + 1,
             "name": name,
+            "type": type_artist,
+            "end_area": endAreaName,
+            "ended": lifeSpan.get("ended", False),
             "location": f"{city}, {country}",
             "deezer_fans": deezer_fans,
-            "genres": genres,
+            "genres": [get_value(genre) for genre in genres],
             "albums": {
                 get_value(album.get("title", "")): [get_value(song.get("title", "")) for song in album.get("songs", [])]
                 for album in albums
@@ -36,8 +46,20 @@ class ArtistProcessor:
             "nb_albums": nb_albums,
             "nb_songs": nb_songs,
             "country": country,
-            "members": members
-        }
+            # For the members, we will only store the names, beginning and end dates, type, gender and birth date
+            "members": [
+                {
+                    "name": get_value(member.get("name", "")),
+                    "type": get_value(member.get("type", "")),
+                    "end_date": get_value(member.get("end", "")),
+                    "begin_date": get_value(member.get("begin", "")),
+                    "gender": get_value(member.get("gender", "")),
+                    "birth_date": get_value(member.get("birthDate", ""))
+                }
+                for member in members
+            ],
+            "nb_members": nb_members
+}
         
         self.update_artists_by_country(country, 1, nb_songs, deezer_fans)
         self.update_country_popularity(country, deezer_fans)
