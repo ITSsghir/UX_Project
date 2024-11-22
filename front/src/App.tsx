@@ -17,12 +17,37 @@ async function get_data() {
   }
 }
 
+const process_data = async (data: any) => {
+  const artists = data;
+  const countries = await getCountries();
+  // If country isn't in the list of countries, check if it's an alias
+  artists.forEach((artist: any) => {
+    if (!countries.includes(artist.country)) {
+      artist.country = correctCountryName(artist.country);
+    }
+  });
+  return artists;
+}
+
+const correctCountryName = (country: string) => {
+  if (country === 'United States' || country === 'United States of America') return 'USA';
+  if (country === 'UK' || country === 'United Kingdom') return 'United Kingdom';
+  return country;
+}
+
 const filterDataForVisu1 = (artistsData: any) => {
-  return artistsData.map((artist: any) => ({
-    country: artist.country === '' || artist.country === 'Unknown' ? 'Antarctica' : artist.country,
+  // Remove any entries with missing data, i.e. country, but keep those with 0 fans
+  const artistsDataFiltered = artistsData.filter((entry: any) => entry.country !== '' && entry.deezer_fans !== '');
+  // Sort the data by country
+  artistsDataFiltered.sort((a: any, b: any) => a.country.localeCompare(b.country));
+  // Correct country names
+  // Group the data by country
+  return artistsDataFiltered.map((artist: any) => ({
+    country: correctCountryName(artist.country),
     numberOfArtists: 1,
     numberOfSongs: artist.nb_songs,
     deezerFans: artist.deezer_fans,
+    genres: artist.genres,
   }));
 };
 
@@ -42,7 +67,6 @@ const filterDataForVisu2 = (artistsData: any, country: string) => {
       }
     });
   });
-
   return genres;
 };
 
@@ -54,7 +78,7 @@ const filterDataForVisu3 = (artistsData: any, country: string, genre: string) =>
 
 async function getCountries() {
   try {
-    const response = await axios.get('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json');
+    const response = await axios.get('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson');
     const features = response.data.features;
     const countries = features.map((feature: any) => feature.properties.name);
     return countries;
@@ -66,13 +90,18 @@ async function getCountries() {
 
 const App = () => {
   const [visuSwitch, setVisuSwitch] = useState('');
-  const [artistsData, setArtistsData] = useState<any[]>([]);
+  const [artistsData, setArtistsData] = useState<any>([]);
   const [country, setCountry] = useState('');
   const [genre, setGenre] = useState('');
   const [countries, setCountries] = useState<string[]>([]);
 
   useEffect(() => {
-    get_data().then((data) => setArtistsData(data));
+    const fetchData = async () => {
+      const data = await get_data();
+      const dataProcessed = await process_data(data);
+      setArtistsData(dataProcessed);
+    };
+    fetchData();
     getCountries().then((data) => setCountries(data));
   }, []);
 
