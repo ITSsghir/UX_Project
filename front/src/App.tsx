@@ -52,10 +52,13 @@ const filterDataForVisu1 = (artistsData: any) => {
 };
 
 const filterDataForVisu2 = (artistsData: any, country: string) => {
+
   const genres: any = [];
   if (!country) return genres;
 
   const countryArtists = artistsData.filter((element: any) => element.country === country);
+
+  // 
 
   countryArtists.forEach((artist: any) => {
     artist.genres.forEach((genre: any) => {
