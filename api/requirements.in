@@ -2,5 +2,4 @@ requests
 aiohttp
 virtualenv
 orjson
-pytest
-aioshttp_cors
+aiohttp_cors
