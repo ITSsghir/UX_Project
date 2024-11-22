@@ -33,7 +33,6 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
-    d3.select('*').remove(); // Clean the canvas
     if (!svgRef.current || !genreData.length) return;
 
     const svg = d3.select(svgRef.current);
@@ -82,6 +81,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('transform', 'rotate(-30)')
       .style('font-size', '10px');
 
+    // Add bars to the chart
     chartGroup
       .selectAll('.bar')
       .data(genreData)
@@ -123,28 +123,31 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
         setMousePosition({ x: 0, y: 0 });
       })
       .on('mouseleave', (event) => {
+        setMousePosition({ x: 0, y: 0 });
         setHoveredGenre(null);
-      })
-      .on('mouseenter', (event, d: any) => {
-        setHoveredGenre(d.genre);
       })
       .on('click', (event, d: any) => {
         setGenreSwitch(d.genre);
         setVisuSwitch('visu3');
       });
 
+    // Add labels to the bars
     chartGroup
       .selectAll('.label')
       .data(genreData)
       .enter()
       .append('text')
       .attr('class', 'label')
-      .attr('x', (d: any) => (xScale(d.genre) ?? 0) + xScale.bandwidth() / 2)
-      .attr('y', (d: any) => yScale(d.fans) - 5)
-      .attr('text-anchor', 'middle')
+      .attr('x', (d: any) => (xScale(d.genre) ?? 0) + xScale.bandwidth() / 2) // Center horizontally
+      .attr('y', (d: any) => yScale(d.fans) - 10) // Position above the bar
+      .attr('text-anchor', 'middle') // Horizontally center the text
       .attr('font-size', '12px')
       .attr('fill', 'black')
-      .text((d: any) => (d.fans >= 0 ? d.fans.toLocaleString() : ''))
+      .text((d: any) => (d.fans >= 0 ? d.fans.toLocaleString() : '')) // Display fans count
+      .attr('transform', (d: any) => `rotate(-90, ${(xScale(d.genre) ?? 0) + xScale.bandwidth() / 2}, ${yScale(d.fans) - 10})`) // Rotate the text around the center of the label
+      .attr('dy', '0.50em') // Vertically center the text
+      // Position the text to the right of the bar if the bar is too short
+      .attr('dx', (d: any) => (xScale.bandwidth()))
       .on('mouseover', (event, d: any) => {
         setHoveredGenre(d.genre);
         setMousePosition({ x: event.pageX, y: event.pageY });
@@ -156,15 +159,14 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .on('mouseleave', () => {
         setHoveredGenre(null);
       })
-      .on('mouseenter', (event, d: any) => {
-        setHoveredGenre(d.genre);
+      .on('mousemove', (event) => {
+        setMousePosition({ x: event.pageX, y: event.pageY });
+      })
+      .on('click', (event, d: any) => {
+        setGenreSwitch(d.genre);
+        setVisuSwitch('visu3');
       });
 
-    // Add a mouseleave listener to the SVG container to reset hoveredGenre
-    svg.on('mouseleave', () => {
-      setHoveredGenre(null);
-      setMousePosition({ x: 0, y: 0 });
-    });
   }, [genreData, width, height]);
 
   return (
