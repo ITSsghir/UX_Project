@@ -1,7 +1,7 @@
 
 # 🌍 Carte Interactive des Artistes Mondiaux 🎶
 
-Bienvenue dans notre projet de **visualisation interactive** qui permet d'explorer la distribution géographique et la popularité des artistes à travers le monde, ainsi que la répartition des genres musicaux par pays ! 
+Bienvenue dans notre projet de **visualisation interactive** qui permet d'explorer la distribution géographique et la popularité des artistes à travers le monde, ainsi que la répartition des genres musicaux par pays !
 
 ## 📌 Fonctionnalités principales
 
@@ -121,4 +121,34 @@ Ce projet permet d'explorer :
 
 ### Frontend
 
-Not implemented yet.
+1. **Installer les dépendances** :
+
+    ```bash
+    cd front/
+
+    npm install
+    ```
+
+2. **Lancer l'application** :
+
+    ```bash
+    npm start
+    ```
+
+3. **Accéder à l'application** :
+  
+      Ouvrir un navigateur et accéder à l'URL `http://localhost:3000`.
+
+      > **Remarque** : l'application va se lancer automatiquement dans le navigateur. Si ce n'est pas le cas, ouvrez un navigateur et accédez à l'URL `http://localhost:3000`.
+
+## 📚 Technologies utilisée
+
+- **Backend** : aiohttp, Python, Pickle.
+- **Frontend** : React, D3.js, Axios.
+- **Data** : WASABI dataset.
+
+## 📝 Auteurs
+
+- Anas Sghir
+- Ameni NECIB
+- Younes EL ARJOUNI
