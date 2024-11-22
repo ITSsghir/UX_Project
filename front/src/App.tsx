@@ -142,12 +142,14 @@ const App = () => {
         return (
           <Visu3
             dimensions={dimensions}
-            artistsData={filterDataForVisu3(artistsData, country, genre)}
+            artistsData={artistsData}
             country={country}
             genre={genre}
             setCountrySwitch={setCountry}
             setGenreSwitch={setGenre}
             setVisuSwitch={setVisuSwitch}
+            listCountries={countries}
+            filterDataForVisu3={filterDataForVisu3}
           />
         );
       default:
