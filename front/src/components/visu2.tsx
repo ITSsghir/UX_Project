@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { isString } from 'util';
+import { group } from 'console';
 
 interface Visu2Props {
   dimensions: { width: number; height: number };
@@ -29,13 +30,15 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
+    d3.select('*').remove(); // Clean the canvas
     if (!svgRef.current || !genreData.length) return;
 
     const svg = d3.select(svgRef.current);
 
-    const dynamicWidth = Math.max(width, genreData.length * 100);
+    const dynamicWidth = Math.min(width, genreData.length * 100);
     svg.attr('width', dynamicWidth).attr('height', height + 80);
 
     svg.selectAll('*').remove();
@@ -53,25 +56,22 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .padding(0.2);
 
     let maxFans = d3.max(genreData, (d: any) => d.fans) || 0;
-    // Convet the maxFans to a number
-    if (isString(maxFans)){
+    if (isString(maxFans)) {
       maxFans = parseInt(maxFans, 10);
     }
     maxFans = Math.ceil(maxFans / 100) * 100;
+
     const yScale = d3
       .scaleLinear()
-      // 
       .domain([0, maxFans])
       .nice()
       .range([innerHeight, 0]);
 
-    // Add the y-axis to the chart
     chartGroup
       .append('g')
       .call(d3.axisLeft(yScale).ticks(5))
       .attr('class', 'y-axis');
 
-    // Add the x-axis to the chart
     chartGroup
       .append('g')
       .call(d3.axisBottom(xScale))
@@ -82,7 +82,6 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('transform', 'rotate(-30)')
       .style('font-size', '10px');
 
-    // Add bars to the chart (if no genre data is available, display a message)
     chartGroup
       .selectAll('.bar')
       .data(genreData)
@@ -94,97 +93,78 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
       .attr('stroke', 'black')
       .attr('stroke-width', 1)
       .attr('stroke-opacity', 0.5)
-      // Set the x and y attributes to position the bars correctly
-      // Use the xScale and yScale functions to position the bars
-      // Use the bandwidth function to set the width of the bars (20 pixels and centered on its genre)
-      .attr('x', (d: any) => {
-        // If the xScale function doesn't return a value, return 0
-        return xScale(d.genre) ?? 0;
-      })
+      .attr('x', (d: any) => xScale(d.genre) ?? 0)
       .attr('y', (d: any) => yScale(d.fans))
-      // Set the width of the bars to 20 pixels
       .attr('width', xScale.bandwidth())
-      .attr('height', (d: any) => {
-        if (yScale(d.fans) === undefined) {
-          return innerHeight;
-        } else {
-          return innerHeight - yScale(d.fans) ?? 0;
-        }
-      })
+      .attr('height', (d: any) => innerHeight - yScale(d.fans))
       .attr('fill', '#4682B4')
       .on('mouseover', (event, d: any) => {
-        d3.select(event.currentTarget).attr('fill', 'orange');
+        d3.select(event.currentTarget)
+          .attr('stroke-color', 'black')
+          .attr('fill', '#4169E1')
+          .attr('stroke-width', 3)
+          .attr('stroke-opacity', 1);
+        setHoveredGenre(d.genre);
       })
       .on('mousemove', (event) => {
-        d3.select(event.currentTarget).attr('fill', 'orange');
+        setMousePosition({ x: event.pageX, y: event.pageY });
+        d3.select(event.currentTarget)
+          .attr('stroke-color', 'black')
+          .attr('fill', '#4169E1')
+          .attr('stroke-width', 3)
+          .attr('stroke-opacity', 1);
       })
-      .on('mouseout', (event) => {
-        d3.select(event.currentTarget).attr('fill', '#4682B4'); // Restore the original color
+      .on('mouseout', () => {
+        setHoveredGenre(null);
+        d3.select('.bar')
+          .attr('fill', '#4682B4')
+          .attr('stroke-width', 1)
+          .attr('stroke-opacity', 0.5);
+        setMousePosition({ x: 0, y: 0 });
       })
-      .on('click', (event, d: any) => {
-        setGenreSwitch(d.genre);
-        setVisuSwitch('visu3');
+      .on('mouseleave', (event) => {
+        setHoveredGenre(null);
       })
       .on('mouseenter', (event, d: any) => {
         setHoveredGenre(d.genre);
       })
-      .on('mouseleave', () => {
-        setHoveredGenre(null);
-      })
-    
-    // Add labels to the bars, even if the value is 0
+      .on('click', (event, d: any) => {
+        setGenreSwitch(d.genre);
+        setVisuSwitch('visu3');
+      });
+
     chartGroup
       .selectAll('.label')
       .data(genreData)
       .enter()
       .append('text')
       .attr('class', 'label')
-      .attr('x', (d: any) => (xScale(d.genre) ?? 0) + xScale.bandwidth() / 2) // Utiliser une valeur par défaut si xScale retourne undefined
-      .attr('y', (d: any) => (yScale(d.fans) ?? 0) - 20) // Juste au-dessus de la barre
-      .attr('dy', '0.75em')
-      .attr('text-anchor', 'middle') // Centrer le texte
+      .attr('x', (d: any) => (xScale(d.genre) ?? 0) + xScale.bandwidth() / 2)
+      .attr('y', (d: any) => yScale(d.fans) - 5)
+      .attr('text-anchor', 'middle')
       .attr('font-size', '12px')
-      .attr('fill', 'white')
-      .text((d: any) => {
-        if (d.fans >= 0) {
-          return d.fans.toLocaleString();
-        }
-        return '';
-      })
-      .on('mouseenter', (event, d: any) => {
+      .attr('fill', 'black')
+      .text((d: any) => (d.fans >= 0 ? d.fans.toLocaleString() : ''))
+      .on('mouseover', (event, d: any) => {
         setHoveredGenre(d.genre);
+        setMousePosition({ x: event.pageX, y: event.pageY });
+      })
+      .on('mouseout', () => {
+        setHoveredGenre(null);
+        setMousePosition({ x: 0, y: 0 });
       })
       .on('mouseleave', () => {
         setHoveredGenre(null);
       })
-      .on('mousemove', (event) => {
-        d3.select(event.currentTarget).attr('fill', 'orange');
-      })
-      .on('mouseout', (event) => {
-        d3.select(event.currentTarget).attr('fill', 'white'); // Restore the original color
-      })
-      .on('click', (event, d: any) => {
-        setGenreSwitch(d.genre);
-        setVisuSwitch('visu3');
+      .on('mouseenter', (event, d: any) => {
+        setHoveredGenre(d.genre);
       });
-    
-    // Add axis labels to the chart
-    svg
-      .append('text')
-      .attr('class', 'y-axis-label')
-      .attr('text-anchor', 'middle')
-      .attr('transform', `translate(${margin.left / 2}, ${margin.top + innerHeight / 2}) rotate(-90)`)
-      .text('Popularity (Number of Fans)');
 
-    svg
-      .append('text')
-      .attr('class', 'x-axis-label')
-      .attr('text-anchor', 'middle')
-      .attr(
-        'transform',
-        `translate(${margin.left + innerWidth / 2}, ${margin.top + innerHeight + margin.bottom / 2})`
-      )
-      .text('Music Genres');
+    // Add a mouseleave listener to the SVG container to reset hoveredGenre
+    svg.on('mouseleave', () => {
+      setHoveredGenre(null);
+      setMousePosition({ x: 0, y: 0 });
+    });
   }, [genreData, width, height]);
 
   return (
@@ -202,11 +182,15 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
     {hoveredGenre && genreData && (
         <div style={{
           position: 'absolute',
-          top: 150,
-          left: 10,
+          top: mousePosition.y - 150,
+          left: mousePosition.x - 75,
           backgroundColor: 'white',
           padding: '10px',
-          border: '1px solid black',
+          borderRadius: '5px',
+          zIndex: 1,
+          border: '1px solid #3A3F58',
+          boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.6), 0 0 10px rgba(50, 150, 250, 0.3)',
+          maxWidth: '200px'
         }}>
           <h4>Genre: {hoveredGenre}</h4>
           <ul>
@@ -214,14 +198,33 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
           </ul>
         </div>
       )}
-      <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Statistiques pour le pays: {country}</h2>
+      <h2 style={{ textAlign: 'center', marginBottom: '10px' }}>Statistiques pour le pays: 
+        <span style={{ 
+          color: '#3A3F58',
+          fontWeight: 'bold',
+          marginLeft: '5px',
+          marginRight: '5px',
+        }}>
+          {country}
+        </span>
+      </h2>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
         <button
           onClick={() => {
             setCountrySwitch('');
             setVisuSwitch('');
           }}
-          style={{ marginRight: '10px' }}
+          style={{ 
+            display: 'inline-block',
+            padding: '5px 10px',
+            borderRadius: '5px',
+            border: 'none',
+            backgroundColor: '#3A3F58',
+            margin: '5px',
+            color: 'white',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s',
+          }}
         >
           Reset
         </button>
@@ -230,7 +233,15 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
           onChange={(event) => {
             setCountrySwitch(event.target.value);
           }}
-          style={{ padding: '5px' }}
+          style={{
+            display: 'inline-block',
+            padding: '5px 10px',
+            borderRadius: '5px',
+            border: '1px solid #3A3F58',
+            margin: '5px',
+            cursor: 'pointer',
+            transition: 'border-color 0.3s',
+          }}
         >
           <option value="">Choisissez un pays</option>
           {listCountries.map((country: any) => (
