@@ -16,6 +16,8 @@ interface Visu2Props {
 function trimData(data: any) {
   // Remove any entries with missing data, i.e. genre, but keep those with 0 fans
   const filteredData = data.filter((entry: any) => entry.genre !== '' && entry.fans !== '');
+  // Sort the data by number of fans in descending order
+  filteredData.sort((a: any, b: any) => b.fans - a.fans);
   return filteredData;
 }
 
@@ -24,13 +26,11 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
   const svgRef = useRef<SVGSVGElement | null>(null);
   // Filter the data to get those for the selected country
   const genreData = trimData(filterDataForVisu2(artistsData, country));
-  console.log('genreData:', genreData);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('genreData:', genreData);
     if (!svgRef.current || !genreData.length) return;
 
     const svg = d3.select(svgRef.current);
@@ -40,7 +40,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
 
     svg.selectAll('*').remove();
 
-    const margin = { top: 80, right: 20, bottom: 100, left: 20 };
+    const margin = { top: 80, right: 20, bottom: 100, left: 70 };
     const innerWidth = dynamicWidth - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
