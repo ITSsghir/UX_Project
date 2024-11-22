@@ -167,7 +167,7 @@ const Visu2: React.FC<Visu2Props> = ({ dimensions, artistsData, country, setGenr
         setVisuSwitch('visu3');
       });
 
-  }, [genreData, width, height]);
+  }, [genreData, width, height, setGenreSwitch, setVisuSwitch]);
 
   return (
     // Add a Drop-down menu for country selection after the h2 tag
