@@ -15,6 +15,7 @@
 **/dist
 **/build
 **/*.sqlite3
+**/tmp
 
 # Compiled files in the root directory
 *.pyc
@@ -26,6 +27,7 @@ __pycache__
 node_modules
 dist
 build
+tmp
 
 # Logs 
 *.log
